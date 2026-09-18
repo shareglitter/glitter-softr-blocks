@@ -256,7 +256,12 @@ function assertOnlyTestRecipients(messages) {
 }
 
 // ── Inputs ──────────────────────────────────────────────────
-const POSTMARK_SERVER_TOKEN = input.secret("POSTMARK_SERVER_TOKEN");
+const POSTMARK_SERVER_TOKEN = String(input.secret("POSTMARK_SERVER_TOKEN") || "").trim();
+// Shape check only; the value itself is never logged. A Postmark 401 almost always
+// means the secret holds something other than the bare server token.
+if (!/^[0-9a-f]{8}-([0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(POSTMARK_SERVER_TOKEN)) {
+    console.log(`⚠ POSTMARK_SERVER_TOKEN secret is ${POSTMARK_SERVER_TOKEN.length} characters and is not shaped like a Postmark server token (36 characters, 8-4-4-4-12 hex). Check for quotes or extra text, and that it is the SERVER token (Postmark → Servers → your server → API Tokens), not the Account token.`);
+}
 const cleaningLogRecordId = input.config().recordId;
 console.log(`MODE = ${MODE}${IS_TEST ? ` → delivering only to ${TEST.recipients.join(", ")}; no Airtable writes` : ""}`);
 
