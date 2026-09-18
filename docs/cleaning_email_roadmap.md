@@ -157,7 +157,7 @@ Other differences from V2 worth knowing:
 - A CTA renders only when the row has **both** a label and a URL. Rows whose URL is still TODO send as text only.
 - The share link gets no UTM: it is the subscriber's personal link, it is printed for copy/paste, and `?code=` already carries attribution.
 - Bag totals under 1 and cleaning counts of 0 count as missing data, so the line drops instead of saying "about 0 bags".
-- `cleanerConsentField` is `null`, so `{cleaner_first_name}` is never available to a line and `cleaner_spotlight` always drops. Point it at the checkbox once that exists.
+- `cleanerConsentField` is `"OK to Name in Emails"`, a checkbox on Cleaners (added 2026-09-18 once several cleaners had consented). `{cleaner_first_name}` is only available to a line when the cleaner who did that cleaning has it checked; otherwise `cleaner_spotlight` drops for that email. The field must exist before the script is pasted, because asking Airtable for a field name that does not exist fails the whole run.
 
 `node airtable_automations/tests/harness_v3.js` runs the script against a mocked base and mocked Postmark through thirteen scenarios (allowlist, nobody-eligible blocks, forced lines, dropped placeholders, quiet hours, live write-back). Run it after every script edit.
 

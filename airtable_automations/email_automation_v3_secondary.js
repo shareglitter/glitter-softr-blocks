@@ -89,7 +89,7 @@ const SECONDARY_CONFIG = {
     subscriberMilestonesField: "Milestones Sent",      // on Subscribers, options "6 months" / "12 months"
     milestoneTag: (months) => `${months} months`,
     subscriberStartField: "Member Since",              // created time; unreliable for bulk-imported rows
-    cleanerConsentField: null,                         // set to "OK to Name in Emails" once it exists on Cleaners
+    cleanerConsentField: "OK to Name in Emails",       // checkbox on Cleaners; unchecked = {cleaner_first_name} lines drop. Set to null if the field is ever removed (a missing field name makes the script fail).
     cleaningLogBagsField: null,                        // set to "Bags" once a numeric field exists
     cleaningLogLitterField: "Trash",                   // single select; options start with Rare/Light/Medium/Heavy/Severe
     litterToBags: { "Rare": 0, "Light": 0.5, "Medium": 1, "Heavy": 2, "Severe": 3 },

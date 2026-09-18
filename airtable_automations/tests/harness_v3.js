@@ -12,7 +12,7 @@ async function run(name, { patch = s => s, lines, hour = 14, consent = false, no
     "Cleaning Log": [rec("recLOG1", { Block: [{ id: "recBLK" }], "Date and Time": "2026-09-18T15:00:00Z", Cleaner: [{ id: "recCLN" }], Trash: { name: "Medium. Up to 1 full bag" } }),
                      rec("recLOG0", { Block: [{ id: "recBLK" }], "Date and Time": "2026-08-18T15:00:00Z", Trash: { name: "Heavy " } })],
     "Blocks": [rec("recBLK", { "Block Name (Friendly)": "1000 S Bouvier St", Subscribers: [{ id: "recS1" }, { id: "recS2" }, { id: "recS3" }], "Block Page URL": "gltr.ly/1000SBouvier" })],
-    "Cleaners": [rec("recCLN", { "Display Name": "Marcus Lee" })],
+    "Cleaners": [rec("recCLN", { "Display Name": "Marcus Lee", "OK to Name in Emails": consent })],
     "Subscribers": [
       rec("recS1", { Email: "real.customer1@example.com", "Cleaning Notifications Opt-In": true, "Contribution Status (from Active Subscriptions)": [{ name: "Active" }], "Display Name": "Darrell W", "Referral Code": "DARRELL-LG7", "Member Since": "2025-01-10T00:00:00Z", "Milestones Sent": null }),
       rec("recS2", { Email: "real.customer2@example.com", "Cleaning Notifications Opt-In": true, "Contribution Status (from Active Subscriptions)": [{ name: "Active" }], "Display Name": "New Nora", "Referral Code": "NORA-111", "Member Since": "2026-09-01T00:00:00Z" }),
@@ -61,7 +61,7 @@ const only = k => s => fill(s).replace('forceKeys: ["*"]', `forceKeys: ${JSON.st
   console.assert(r.sent[0].TemplateModel.share.text === "Know a neighbor?" && r.sent[0].TemplateModel.share.forward_label === "Share" && r.sent[0].TemplateModel.share.forward_mailto && !r.sent[0].TemplateModel.secondary, "FAIL 3");
   r = await run("4. test, forced impact_stat (counts)", { lines: ALL, patch: only(["impact_stat"]) });
   console.assert(/2nd cleaning. About 3 bags/.test(r.sent[0].TemplateModel.secondary.text), "FAIL 4");
-  r = await run("5. test, forced cleaner_spotlight, no consent field → dropped", { lines: ALL, patch: only(["cleaner_spotlight"]) });
+  r = await run("5. test, forced cleaner_spotlight, cleaner has not consented → dropped", { lines: ALL, patch: only(["cleaner_spotlight"]) });
   console.assert(!r.sent[0].TemplateModel.secondary && /dropped/.test(r.sent[0].TemplateModel.test_banner.outcome), "FAIL 5");
   r = await run("6. test, real rules → milestone overrides for 20-month member", { lines: ALL, patch: only([]) });
   console.assert(r.sent[0].TemplateModel.secondary.text === "Thank you for six months." && r.writes.length === 0, "FAIL 6");
@@ -79,5 +79,7 @@ const only = k => s => fill(s).replace('forceKeys: ["*"]', `forceKeys: ${JSON.st
   console.assert(!r.sent, "FAIL 12");
   r = await run("13. LIVE, nobody eligible → nothing sent, nothing written", { lines: ALL, patch: s => s.replace('const MODE = "test"', 'const MODE = "live"'), noneOptedIn: true });
   console.assert(!r.sent && r.writes.length === 0, "FAIL 13");
+  r = await run("14. test, forced cleaner_spotlight, cleaner consented → line names the cleaner", { lines: ALL, patch: only(["cleaner_spotlight"]), consent: true });
+  console.assert(r.sent[0].TemplateModel.secondary && r.sent[0].TemplateModel.secondary.text === "Cleaned by Marcus, a neighbor.", "FAIL 14");
   console.log("\nharness done");
 })();
