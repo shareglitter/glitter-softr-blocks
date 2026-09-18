@@ -21,7 +21,8 @@ See your cleaning photos and your block page:
 {{/secondary}}
 {{#share}}
 
-Know a neighbor who'd love a cleaner block? Every neighbor who chips in keeps the cleanings coming. Your personal link, to share anywhere:
+{{^text}}Know a neighbor who'd love a cleaner block? Every neighbor who chips in keeps the cleanings coming.{{/text}}{{text}}
+Your personal link, to share anywhere:
 {{url}}
 {{/share}}
 

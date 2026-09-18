@@ -1,6 +1,5 @@
 {
   "_how_to_use": "Paste ONE of these objects into the Postmark template editor's test-model box to preview each state. Real sends build the same shape in email_automation_v3_secondary.js.",
-
   "1_secondary_with_cta_test_mode": {
     "display_name": "Darrell W",
     "block_name": "1000 S Bouvier St",
@@ -10,7 +9,10 @@
     "preference_url": "https://app.shareglitter.com/",
     "secondary": {
       "text": "Enjoying Glitter? A quick Google review helps other blocks find us.",
-      "cta": { "label": "Leave a review", "url": "https://example.com/review?utm_source=cleaning_email&utm_medium=email&utm_campaign=post_clean_secondary&utm_content=review" }
+      "cta": {
+        "label": "Leave a review",
+        "url": "https://example.com/review?utm_source=cleaning_email&utm_medium=email&utm_campaign=post_clean_secondary&utm_content=review"
+      }
     },
     "test_banner": {
       "line_key": "review",
@@ -20,7 +22,6 @@
       "log_id": "recXXXXXXXXXXXXXX"
     }
   },
-
   "2_secondary_text_only_live": {
     "display_name": "Darrell W",
     "block_name": "1000 S Bouvier St",
@@ -28,10 +29,26 @@
     "cleaner_first_name": "Marcus",
     "block_page_url": "https://gltr.ly/1000SBouvier",
     "preference_url": "https://app.shareglitter.com/",
-    "secondary": { "text": "How'd we do? Reply and let us know.", "cta": null }
+    "secondary": {
+      "text": "How'd we do? Reply and let us know.",
+      "cta": null
+    }
   },
-
   "3_referral_renders_as_share_live": {
+    "display_name": "Darrell W",
+    "block_name": "1000 S Bouvier St",
+    "cleaning_date": "Friday, September 18",
+    "cleaner_first_name": "Marcus",
+    "block_page_url": "https://gltr.ly/1000SBouvier",
+    "preference_url": "https://app.shareglitter.com/",
+    "share": {
+      "url": "https://gltr.ly/1000SBouvier?code=DARRELL-LG7",
+      "forward_mailto": "mailto:?subject=1000%20S%20Bouvier%20St%20just%20got%20cleaned&body=Hi%20neighbor%2C%0A%0AOur%20block%20was%20just%20cleaned%20by%20Glitter.%0Ahttps%3A%2F%2Fgltr.ly%2F1000SBouvier%3Fcode%3DDARRELL-LG7",
+      "text": "Know a neighbor who'd want this for their block? Forward this email, or send them your personal link.",
+      "forward_label": "Forward this email"
+    }
+  },
+  "4_share_from_older_script_without_text_shows_fallback_copy": {
     "display_name": "Darrell W",
     "block_name": "1000 S Bouvier St",
     "cleaning_date": "Friday, September 18",
@@ -43,8 +60,7 @@
       "forward_mailto": "mailto:?subject=1000%20S%20Bouvier%20St%20just%20got%20cleaned&body=Hi%20neighbor%2C%0A%0AOur%20block%20was%20just%20cleaned%20by%20Glitter.%0Ahttps%3A%2F%2Fgltr.ly%2F1000SBouvier%3Fcode%3DDARRELL-LG7"
     }
   },
-
-  "4_no_line_at_all_live": {
+  "5_no_line_at_all_live": {
     "display_name": "Darrell W",
     "block_name": "1000 S Bouvier St",
     "cleaning_date": "Friday, September 18",

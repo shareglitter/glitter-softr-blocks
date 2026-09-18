@@ -123,7 +123,7 @@ Built. The repo copies are the source of truth; paste them whole.
 Three conditional sections, each invisible unless the script sends its object:
 
 - `{{#secondary}}` — `{{text}}` plus an optional `{{#cta}}` with `{{label}}` / `{{url}}`. This differs from the first draft of this spec, which used flat `cta_url` / `cta_label` keys inside a nested `{{#cta_url}}` section; that relied on Mustachio resolving `cta_label` from the parent scope. An object avoids the question. **If the draft snippet was pasted into Postmark, replace it with the repo file.**
-- `{{#share}}` — forward/share, shipped earlier. Sent only when the line's key is `referral`.
+- `{{#share}}` — the forward section. Sent only when the line's key is `referral`. Since 2026-09-18 its copy is editable like every other line: the row's `Line Text` is the sentence (`{{text}}`), `CTA Label` is the forward button's label (`{{forward_label}}`), and `CTA URL` is ignored because the link is always the subscriber's personal `?code=` link. `{{^text}}` / `{{^forward_label}}` inverted sections hold fallback copy, so the V2 scripts (which send `share` without those keys) still render properly against the new template. The "Share this link" button was removed after the first test: a button that only opens the block page read as confusing. The personal link is still printed under the forward button for copy/paste.
 - `{{#test_banner}}` — yellow strip naming the line, who the email was rendered as, and why a line was dropped. Sent only in test mode.
 
 `{{text}}` stays double-braced (HTML-escaped). The script sends plain text, never HTML.
@@ -187,7 +187,7 @@ Rule: if a line references a placeholder the script can't fill for that recipien
 
 | Key | Mode | Line Text | CTA Label | CTA URL |
 |---|---|---|---|---|
-| `referral` | Rotation | Know a neighbor who'd want this for their block? Forward this email or share your block page. | Share your block page | `{block_page_url}` |
+| `referral` | Rotation | Know a neighbor who'd want this for their block? Forward this email, or send them your personal link. | Forward this email (used as the forward button's label) | ignored |
 | `satisfaction` | Rotation | How'd we do? Reply and let us know. | | |
 | `impact_stat` | Rotation | This was your {cleaning_count_ordinal} cleaning. Your block has collected about {block_bags_total} bags so far. | See your block page | `{block_page_url}` |
 | `services_waitlist` | Rotation | Curious about compost, leaves, weeds, or snow? Join the waitlist. | Join the waitlist | TODO waitlist form URL |

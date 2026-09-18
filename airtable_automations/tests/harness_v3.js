@@ -57,7 +57,7 @@ const only = k => s => fill(s).replace('forceKeys: ["*"]', `forceKeys: ${JSON.st
   r = await run("2. test, forced review", { lines: ALL, patch: only(["review"]) });
   console.assert(r.sent.every(m => ["sid@test.com", "prez@test.com"].includes(m.To)) && r.sent.length === 2 && r.writes.length === 0 && r.sent[0].TemplateModel.secondary && !r.sent[0].TemplateModel.share, "FAIL 2");
   r = await run("3. test, forced referral → share not secondary", { lines: ALL, patch: only(["referral"]) });
-  console.assert(r.sent[0].TemplateModel.share && !r.sent[0].TemplateModel.secondary, "FAIL 3");
+  console.assert(r.sent[0].TemplateModel.share.text === "Know a neighbor?" && r.sent[0].TemplateModel.share.forward_label === "Share" && r.sent[0].TemplateModel.share.forward_mailto && !r.sent[0].TemplateModel.secondary, "FAIL 3");
   r = await run("4. test, forced impact_stat (counts)", { lines: ALL, patch: only(["impact_stat"]) });
   console.assert(/2nd cleaning. About 3 bags/.test(r.sent[0].TemplateModel.secondary.text), "FAIL 4");
   r = await run("5. test, forced cleaner_spotlight, no consent field → dropped", { lines: ALL, patch: only(["cleaner_spotlight"]) });

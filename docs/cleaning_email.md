@@ -38,9 +38,10 @@ no way to trigger the client's own Forward button.
   forward: a forwarded copy carries the subscriber's own Unsubscribe and
   Manage-preferences links, and a neighbor clicking Unsubscribe would
   unsubscribe the original subscriber.
-- **Share this link** opens the subscriber's block page with `?code=THEIRCODE`.
-  The same URL is printed below the buttons for copy/paste (long-press on a
-  phone).
+- **The personal link** (`<block page>?code=THEIRCODE`) is printed under the
+  forward button for copy/paste (long-press on a phone). A separate "Share this
+  link" button that opened the block page shipped on 2026-09-18 and is removed
+  in the V3 template: opening the page did not read as "sharing".
 - The encoding is done in the script because Postmark's `{{ }}` HTML-escapes
   but does not URL-encode.
 

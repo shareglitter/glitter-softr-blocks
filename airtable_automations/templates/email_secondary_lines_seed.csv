@@ -1,5 +1,5 @@
 Key,Mode,Line Text,CTA Label,CTA URL,Milestone Months,Requires Fields,Notes
-referral,Rotation,Know a neighbor who'd want this for their block? Forward this email or share your block page.,Share your block page,{block_page_url},,,"Renders as the forward/share section, not as this text. Text and CTA here are only used if that section is retired."
+referral,Rotation,"Know a neighbor who'd want this for their block? Forward this email, or send them your personal link.",Forward this email,,,,"Renders as the forward section: Line Text is the sentence, CTA Label is the button label, CTA URL is ignored (the link is always the subscriber's personal ?code= link)."
 satisfaction,Rotation,How'd we do? Reply and let us know.,,,,,Depends on Reply-To reaching a monitored inbox.
 impact_stat,Rotation,This was your {cleaning_count_ordinal} cleaning. Your block has collected about {block_bags_total} bags so far.,See your block page,{block_page_url},,"cleaning_count, block_bags_total","Bag total is an estimate from the Trash select. Cleaning count uses Member Since, which is wrong for bulk-imported members."
 services_waitlist,Rotation,"Curious about compost, leaves, weeds, or snow? Join the waitlist.",Join the waitlist,,,,TODO: CTA URL (waitlist form). Until a URL is set this renders as text only.

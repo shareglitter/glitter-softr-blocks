@@ -79,7 +79,9 @@ const SECONDARY_CONFIG = {
         firstSent: "First Sent",
         lastSent: "Last Sent",
     },
-    shareKey: "referral",                              // this key renders as the {{#share}} section
+    // This key renders as the {{#share}} section: Line Text is the sentence, CTA Label is the
+    // forward button's label, CTA URL is ignored (the link is always the subscriber's own).
+    shareKey: "referral",
     cleaningLogLinkField: "Secondary Line",            // on Cleaning Log
     subscriberMilestonesField: "Milestones Sent",      // on Subscribers, options "6 months" / "12 months"
     milestoneTag: (months) => `${months} months`,
@@ -159,7 +161,7 @@ function renderLine(rec, ctx) {
 
     let cta = null;
     const rawUrl = rec.getCellValue(c.f.ctaUrl);
-    const label = rec.getCellValue(c.f.ctaLabel);
+    const label = (rec.getCellValue(c.f.ctaLabel) || "").trim();
     if (rawUrl && label) {
         const u = fillPlaceholders(rawUrl, ctx);
         if (u.missing.length) return { key, dropped: `no data for {${u.missing.join("}, {")}} in CTA URL` };
@@ -167,7 +169,7 @@ function renderLine(rec, ctx) {
         if (!/^(https?:|mailto:)/i.test(url)) url = "https://" + url;
         cta = { label: label, url: url.startsWith("mailto:") ? url : appendUtm(url, key) };
     }
-    return { key, record: rec, model: { text: t.out, cta: cta } };
+    return { key, record: rec, label: label, model: { text: t.out, cta: cta } };
 }
 
 // Milestone lines override the rotation line for that one recipient, once each.
@@ -472,8 +474,14 @@ function buildForSubscriber(r) {
     if (sec.dropped !== undefined) {
         outcome = `NO LINE${sec.key ? ` ("${sec.key}" dropped)` : ""}: ${sec.dropped}`;
     } else if (sec.key === SECONDARY_CONFIG.shareKey) {
-        model.share = buildShare(blockPageUrl, blockName, r.referralCode);
-        outcome = `"${sec.key}" → shown as the forward/share section`;
+        const share = buildShare(blockPageUrl, blockName, r.referralCode);
+        if (share) {
+            model.share = { ...share, text: sec.model.text, forward_label: sec.label || "Forward this email" };
+            outcome = `"${sec.key}" → shown as the forward section`;
+        } else {
+            sec.dropped = "block has no Block Page URL";
+            outcome = `NO LINE ("${sec.key}" dropped): ${sec.dropped}`;
+        }
     } else {
         model.secondary = sec.model;
         outcome = `"${sec.key}"${sec.milestoneTag ? ` (milestone, ${sec.milestoneTag})` : ""}${sec.model.cta ? "" : " (text only, no CTA)"}`;
