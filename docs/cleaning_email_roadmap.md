@@ -1,6 +1,6 @@
 # Cleaning email — roadmap
 
-**Status:** nothing in this file is built. How the email ships today is in `docs/cleaning_email.md`; read that first, especially the rule that the immediate script and the morning catch-up script build the same `TemplateModel`.
+**Status:** Part 1 is **in test** as of 2026-09-18 (script, template and table exist; a test-only automation sends to two staff addresses). Parts 2 to 4 are not built. How the email ships today is in `docs/cleaning_email.md`; read that first, especially the rule that the immediate script and the morning catch-up script build the same `TemplateModel`.
 **Last merged:** 2026-09-18
 **Sources:** (1) the president's Google Doc "Cleaning Confirmation Email — Test Ideas" (Sep 17, 2026), turned into a build spec in a Claude chat; (2) her verbal asks relayed the same week: forward/share links, a thumbs up/down, and a four-across "4 more ways to get involved". The unmodified chat spec is in git history at commit `395a257` as `docs/post-clean-email-secondary-slot.md`.
 **Base:** Subscription Blocks (`appzuuUtAQVDg0YW1`)
@@ -96,7 +96,7 @@ Cleaning Log created
 
 | Field | Type | Notes |
 |---|---|---|
-| `Milestones Sent` | Multiple select: `6mo`, `12mo` | Written by the script so each milestone line goes out once per subscriber. |
+| `Milestones Sent` | Multiple select: `6 months`, `12 months` (as created 2026-09-18) | Written by the script so each milestone line goes out once per subscriber. |
 
 #### 3d. Fields to confirm exist (needed for placeholders)
 
@@ -112,335 +112,55 @@ Checked against the live schema on 2026-09-18:
 
 ### 4. Postmark template change
 
-Template `45583435` (repo copy: `airtable_automations/templates/post_cleaning_emails_postmark.html`). Add this block inside the card, after the "Or paste this link" row and before the `{{#share}}` section, restyled to match the card (Epilogue font stack, `#e8e6df` divider, `#0F6E56` link). Mustachio renders the section only when `secondary` is present in the TemplateModel. See "How the pieces fit" above for how `secondary` and `share` avoid appearing together.
+Built. The repo copies are the source of truth; paste them whole.
 
-**HTML body:**
+| Postmark field | Repo file |
+|---|---|
+| HTML body | `airtable_automations/templates/post_cleaning_emails_postmark.html` |
+| Text body (new; Postmark had none) | `airtable_automations/templates/post_cleaning_emails_postmark.txt` |
+| Preview models for the editor's test box | `airtable_automations/templates/sample_models.json` |
 
-```html
-{{#secondary}}
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:24px;">
-  <tr>
-    <td style="border-top:1px solid #e3e3e3; padding-top:16px; font-size:15px; line-height:1.5; color:#333;">
-      {{text}}
-      {{#cta_url}}
-      &nbsp;<a href="{{cta_url}}" style="color:#111; font-weight:600;">{{cta_label}}</a>
-      {{/cta_url}}
-    </td>
-  </tr>
-</table>
-{{/secondary}}
-```
+Three conditional sections, each invisible unless the script sends its object:
 
-**Text body:**
+- `{{#secondary}}` — `{{text}}` plus an optional `{{#cta}}` with `{{label}}` / `{{url}}`. This differs from the first draft of this spec, which used flat `cta_url` / `cta_label` keys inside a nested `{{#cta_url}}` section; that relied on Mustachio resolving `cta_label` from the parent scope. An object avoids the question. **If the draft snippet was pasted into Postmark, replace it with the repo file.**
+- `{{#share}}` — forward/share, shipped earlier. Sent only when the line's key is `referral`.
+- `{{#test_banner}}` — yellow strip naming the line, who the email was rendered as, and why a line was dropped. Sent only in test mode.
 
-```
-{{#secondary}}
+`{{text}}` stays double-braced (HTML-escaped). The script sends plain text, never HTML.
 
-{{text}}{{#cta_url}} {{cta_label}}: {{cta_url}}{{/cta_url}}
-{{/secondary}}
-```
-
-Notes:
-
-- Inside `{{#secondary}}` the context is the `secondary` object, so `{{text}}` is `secondary.text`.
-- `{{#cta_url}}...{{/cta_url}}` is a nested section: renders only if `cta_url` is a non-empty string.
-- Keep `{{text}}` double-braced (HTML-escaped). The script sends plain text, never HTML.
-- Nothing else in the template changes. Existing model keys (`block_name`, `cleaning_date`, `cleaner_first_name`, `preference_url`, `display_name`, `block_page_url`, and the `share` object added 2026-09-18) stay as they are.
-- The repo has no copy of the template's text body. Pull it from Postmark into `airtable_automations/templates/` before editing it.
-- Send yourself a test with and without `secondary` in the model before deploying the script.
+**Two templates during testing.** Duplicate template `45583435` in Postmark and give the copy the alias `cleaning-notification-test`. The test automation sends through the alias, so copy edits never touch live sends. Suggested subject for the copy: `{{#test_banner}}[TEST · {{line_key}}] {{/test_banner}}` followed by the live subject. Promote by pasting the tested HTML and text into `45583435`.
 
 ---
 
 ### 5. Script changes
 
-Both scripts get the same module pasted in (they are duplicated by design, one runs immediately, one runs at 6:15am for quiet-hours sends). Keep the module byte-identical in both, the same way `buildShare()` already is. Repo copies: `airtable_automations/email_automation.js` (immediate) and `airtable_automations/email_automation_delayed.js` (catch-up).
+Built as one file: `airtable_automations/email_automation_v3_secondary.js`. It is the V2 immediate script plus the secondary-line module, with a `MODE` constant.
 
-#### 5a. Shared module: `secondary-line.js`
+| | `MODE = "test"` | `MODE = "live"` |
+|---|---|---|
+| Recipients | only `TEST.recipients` (hard allowlist, 1 to 3 addresses) | the block's eligible subscribers |
+| Rendered as | the first `TEST.maxPreviewsPerLog` eligible subscribers of the cleaned block | each subscriber |
+| Template | alias `cleaning-notification-test` | id `45583435` |
+| Line choice | `TEST.forceKeys`: `["*"]` random tour of every row, a list of keys, or `[]` for the real rules | Active checkbox, date window, milestones, one-active guardrail |
+| Airtable writes | **none** (no `Email Delayed`, no log stamp, no counters, no `Milestones Sent`) | all of them |
+| Quiet hours | skips the send, writes nothing | sets `Email Delayed` for the catch-up |
+| Postmark tag | `secondary-test` | `secondary:<key>` |
 
-Paste this above the `// ── Send via Postmark` section in each script.
+Guardrails in test mode: the script throws before doing anything if the placeholder addresses are still in `TEST.recipients`; `assertOnlyTestRecipients()` re-checks every message immediately before the Postmark call and throws if any `To` is off the list or a Cc/Bcc is present; and because nothing is written, a test run cannot mark a real subscriber's milestone as sent or pollute attribution counts.
 
-```js
-// ════════════════════════════════════════════════════════════
-// SECONDARY LINE MODULE (keep identical in both send scripts)
-// ════════════════════════════════════════════════════════════
-const SECONDARY_CONFIG = {
-    table: "Email Secondary Lines",
-    f: {
-        key: "Key",
-        text: "Line Text",
-        ctaLabel: "CTA Label",
-        ctaUrl: "CTA URL",
-        mode: "Mode",                // "Rotation" | "Milestone"
-        active: "Active",
-        milestoneMonths: "Milestone Months",
-        startDate: "Start Date",
-        endDate: "End Date",
-        emailsSent: "Emails Sent",
-        firstSent: "First Sent",
-        lastSent: "Last Sent",
-    },
-    cleaningLogLinkField: "Secondary Line",            // on Cleaning Log
-    subscriberMilestonesField: "Milestones Sent",      // on Subscribers (multi select: "6mo", "12mo")
-    subscriberStartField: "Member Since",              // created time; see 3d caveat about imported rows
-    cleanerConsentField: "OK to Name in Emails",       // on Cleaners, TODO create
-    cleaningLogBagsField: null,                        // set to "Bags" once a numeric field exists
-    cleaningLogLitterField: "Trash",                   // single select; confirm option names match litterToBags
-    litterToBags: { "Rare": 0, "Light": 0.5, "Medium": 1, "Heavy": 2, "Severe": 3 },
-    utm: { source: "cleaning_email", medium: "email", campaign: "post_clean_secondary" },
-};
+Other differences from V2 worth knowing:
 
-// Load rotation + milestone lines. One query.
-async function loadSecondaryLines() {
-    const c = SECONDARY_CONFIG;
-    const table = base.getTable(c.table);
-    const q = await table.selectRecordsAsync({ fields: Object.values(c.f) });
+- The Postmark token is read with `input.secret("POSTMARK_SERVER_TOKEN")` (Airtable automation Secrets), so this file is safe to commit.
+- Subscribers load in one query per 100 links instead of one query each, which removes the 30-query ceiling for big blocks.
+- `Milestones Sent` options are `6 months` / `12 months` as created in Airtable, not `6mo` / `12mo`.
+- A CTA renders only when the row has **both** a label and a URL. Rows whose URL is still TODO send as text only.
+- The share link gets no UTM: it is the subscriber's personal link, it is printed for copy/paste, and `?code=` already carries attribution.
+- Bag totals under 1 and cleaning counts of 0 count as missing data, so the line drops instead of saying "about 0 bags".
+- `cleanerConsentField` is `null`, so `{cleaner_first_name}` is never available to a line and `cleaner_spotlight` always drops. Point it at the checkbox once that exists.
 
-    const today = new Date();
-    const inWindow = (r) => {
-        const s = r.getCellValue(c.f.startDate);
-        const e = r.getCellValue(c.f.endDate);
-        if (s && new Date(s) > today) return false;
-        if (e && new Date(e) < today) return false;
-        return true;
-    };
+`node airtable_automations/tests/harness_v3.js` runs the script against a mocked base and mocked Postmark through ten scenarios (allowlist, forced lines, dropped placeholders, quiet hours, live write-back). Run it after every script edit.
 
-    const active = q.records.filter(r => r.getCellValue(c.f.active) === true && inWindow(r));
-    const modeOf = (r) => (r.getCellValue(c.f.mode) || {}).name || "Rotation";
-
-    const rotation = active.filter(r => modeOf(r) === "Rotation");
-    const milestones = active.filter(r => modeOf(r) === "Milestone");
-
-    if (rotation.length > 1) {
-        console.log(`⚠ ${rotation.length} rotation lines are Active. Only one is allowed. Sending WITHOUT a secondary line. Fix: ${rotation.map(r => r.getCellValue(c.f.key)).join(", ")}`);
-        return { rotation: null, milestones, table };
-    }
-
-    return { rotation: rotation[0] || null, milestones, table };
-}
-
-// Replace {placeholder} tokens. Unknown or empty placeholders cause the line to be dropped
-// (better no line than "your Nth cleaning" with a blank).
-function fillPlaceholders(text, ctx) {
-    if (!text) return { ok: false, out: "" };
-    let missing = false;
-    const out = text.replace(/\{([a-z_]+)\}/g, (m, key) => {
-        const v = ctx[key];
-        if (v === undefined || v === null || v === "") { missing = true; return m; }
-        return String(v);
-    });
-    return { ok: !missing, out };
-}
-
-function appendUtm(url, key) {
-    if (!url) return "";
-    const u = SECONDARY_CONFIG.utm;
-    const sep = url.includes("?") ? "&" : "?";
-    return `${url}${sep}utm_source=${u.source}&utm_medium=${u.medium}&utm_campaign=${u.campaign}&utm_content=${encodeURIComponent(key)}`;
-}
-
-function ordinal(n) {
-    const s = ["th", "st", "nd", "rd"], v = n % 100;
-    return n + (s[(v - 20) % 10] || s[v] || s[0]);
-}
-
-function monthsBetween(a, b) {
-    return (b.getFullYear() - a.getFullYear()) * 12 + (b.getMonth() - a.getMonth());
-}
-
-// Build the secondary object for one recipient, or null.
-// ctx: { display_name, block_name, block_page_url, cleaner_first_name, cleaning_count,
-//        cleaning_count_ordinal, block_bags_total, tenure_months, milestonesSent: [] }
-function buildSecondary(lines, ctx) {
-    const c = SECONDARY_CONFIG;
-
-    // 1. Milestone override (per subscriber, once per milestone)
-    for (const m of lines.milestones) {
-        const months = m.getCellValue(c.f.milestoneMonths);
-        const tag = `${months}mo`;
-        if (!months || ctx.tenure_months == null) continue;
-        if (ctx.tenure_months < months) continue;
-        if ((ctx.milestonesSent || []).includes(tag)) continue;
-        const built = renderLine(m, ctx);
-        if (built) return { ...built, milestoneTag: tag };
-    }
-
-    // 2. Rotation line
-    if (!lines.rotation) return null;
-    return renderLine(lines.rotation, ctx);
-}
-
-function renderLine(rec, ctx) {
-    const c = SECONDARY_CONFIG;
-    const key = rec.getCellValue(c.f.key);
-    const t = fillPlaceholders(rec.getCellValue(c.f.text), ctx);
-    if (!t.ok) { console.log(`  secondary "${key}" skipped for ${ctx.display_name}: missing placeholder data`); return null; }
-
-    let ctaUrl = "";
-    const rawUrl = rec.getCellValue(c.f.ctaUrl);
-    if (rawUrl) {
-        const u = fillPlaceholders(rawUrl, ctx);
-        if (!u.ok) { console.log(`  secondary "${key}" skipped: missing URL placeholder`); return null; }
-        ctaUrl = appendUtm(u.out, key);
-    }
-
-    return {
-        key,
-        record: rec,
-        model: {
-            text: t.out,
-            cta_label: rec.getCellValue(c.f.ctaLabel) || "",
-            cta_url: ctaUrl,
-        },
-    };
-}
-
-// After a successful send: stamp the log, bump counters, mark milestones.
-async function recordSecondarySends(lines, cleaningLogTable, cleaningLogRecordId, sentSecondaries, subscribersTable) {
-    const c = SECONDARY_CONFIG;
-    if (sentSecondaries.length === 0) return;
-
-    // Count per line
-    const byKey = new Map();
-    for (const s of sentSecondaries) {
-        if (!byKey.has(s.key)) byKey.set(s.key, { record: s.record, count: 0 });
-        byKey.get(s.key).count++;
-    }
-    const today = new Date().toISOString().slice(0, 10);
-    for (const { record, count } of byKey.values()) {
-        const prev = record.getCellValue(c.f.emailsSent) || 0;
-        const fields = { [c.f.emailsSent]: prev + count, [c.f.lastSent]: today };
-        if (!record.getCellValue(c.f.firstSent)) fields[c.f.firstSent] = today;
-        await lines.table.updateRecordAsync(record.id, fields);
-    }
-
-    // Stamp the cleaning log with the rotation line (milestones are per-subscriber, tracked below)
-    const rotationSend = sentSecondaries.find(s => !s.milestoneTag);
-    if (rotationSend) {
-        await cleaningLogTable.updateRecordAsync(cleaningLogRecordId, {
-            [c.cleaningLogLinkField]: [{ id: rotationSend.record.id }],
-        });
-    }
-
-    // Milestones: mark on the subscriber so they never repeat
-    for (const s of sentSecondaries.filter(x => x.milestoneTag)) {
-        const existing = (s.milestonesSent || []).map(n => ({ name: n }));
-        await subscribersTable.updateRecordAsync(s.subscriberId, {
-            [c.subscriberMilestonesField]: [...existing, { name: s.milestoneTag }],
-        });
-    }
-}
-```
-
-#### 5b. Changes to the immediate script (`wflCdrhjYRo6d23pd`)
-
-Find these spots in the existing script and patch as noted.
-
-**(1) Subscriber fetch.** Add the two new fields to the `selectRecordAsync` fields list:
-
-```js
-fields: ["Email", "Cleaning Notifications Opt-In", "Contribution Status (from Active Subscriptions)", "Display Name", "Referral Code",
-         SECONDARY_CONFIG.subscriberStartField, SECONDARY_CONFIG.subscriberMilestonesField]
-```
-
-and when pushing to `emailRecipients`, carry the extra data:
-
-```js
-emailRecipients.push({
-    email: typeof email === "object" ? email.email || email : email,
-    subscriberName: displayName,
-    referralCode: subscriber.getCellValueAsString("Referral Code"),   // already there for buildShare()
-    subscriberId: subscriber.id,
-    startDate: subscriber.getCellValue(SECONDARY_CONFIG.subscriberStartField),   // may be array (lookup)
-    milestonesSent: (subscriber.getCellValue(SECONDARY_CONFIG.subscriberMilestonesField) || []).map(x => x.name),
-});
-```
-
-**(2) Cleaner consent.** Where the cleaner is fetched, also read `SECONDARY_CONFIG.cleanerConsentField` and keep a `cleanerNameable` boolean. Expose `cleaner_first_name` to the secondary context only when true.
-
-**(3) Block stats, lazy.** Right before building the Postmark payload, after `loadSecondaryLines()`:
-
-```js
-const lines = await loadSecondaryLines();
-const needsCounts = [lines.rotation, ...lines.milestones].some(r =>
-    r && /\{(cleaning_count|cleaning_count_ordinal|block_bags_total)\}/.test(r.getCellValue(SECONDARY_CONFIG.f.text) || ""));
-
-let blockLogs = [];
-if (needsCounts) {
-    const logQ = await cleaningLogTable.selectRecordsAsync({
-        fields: ["Block", "Date and Time", SECONDARY_CONFIG.cleaningLogBagsField, SECONDARY_CONFIG.cleaningLogLitterField].filter(Boolean)
-    });
-    blockLogs = logQ.records.filter(r => (r.getCellValue("Block") || []).some(b => b.id === blockId));
-}
-const bagsOf = (r) => {
-    if (SECONDARY_CONFIG.cleaningLogBagsField) return r.getCellValue(SECONDARY_CONFIG.cleaningLogBagsField) || 0;
-    const lvl = ((r.getCellValue(SECONDARY_CONFIG.cleaningLogLitterField) || {}).name || "").split(".")[0].trim();
-    return SECONDARY_CONFIG.litterToBags[lvl] || 0;
-};
-const blockBagsTotal = Math.round(blockLogs.reduce((s, r) => s + bagsOf(r), 0));
-```
-
-**(4) Payload.** Replace the `Messages:` map so each recipient gets its own `secondary`:
-
-```js
-const sentSecondaries = [];
-const messages = emailRecipients.map(r => {
-    const start = Array.isArray(r.startDate) ? r.startDate[0] : r.startDate;
-    const startD = start ? new Date(start) : null;
-    const now = new Date();
-    const myLogs = startD ? blockLogs.filter(l => new Date(l.getCellValue("Date and Time")) >= startD) : [];
-    const ctx = {
-        display_name: r.subscriberName,
-        block_name: blockName,
-        block_page_url: blockPageUrl,
-        cleaner_first_name: cleanerNameable ? cleanerFirstName : null,
-        cleaning_count: needsCounts && startD ? myLogs.length : null,
-        cleaning_count_ordinal: needsCounts && startD ? ordinal(myLogs.length) : null,
-        block_bags_total: needsCounts ? blockBagsTotal : null,
-        tenure_months: startD ? monthsBetween(startD, now) : null,
-        milestonesSent: r.milestonesSent,
-    };
-    const sec = buildSecondary(lines, ctx);
-    if (sec) sentSecondaries.push({ ...sec, subscriberId: r.subscriberId, milestonesSent: r.milestonesSent, email: r.email });
-
-    const TemplateModel = {
-        block_name: blockName,
-        cleaning_date: cleaningDate,
-        cleaner_first_name: cleanerFirstName,
-        preference_url: PREFERENCE_PAGE_URL,
-        display_name: r.subscriberName,
-        block_page_url: blockPageUrl,
-    };
-    // `referral` is rendered by the richer {{#share}} section instead of the one-line slot,
-    // so an email never carries both. See "How the pieces fit".
-    if (sec && sec.key === "referral") {
-        TemplateModel.share = buildShare(blockPageUrl, blockName, r.referralCode);
-    } else if (sec) {
-        TemplateModel.secondary = sec.model;
-    }
-
-    return { From: "support@shareglitter.com", To: r.email, TemplateId: POSTMARK_TEMPLATE_ID, TemplateModel, MessageStream: "cleaning-notifications" };
-});
-const postmarkPayload = { Messages: messages };
-```
-
-**(5) After send.** Inside the `if (response.ok)` branch, only count secondaries for messages that actually succeeded, then record:
-
-```js
-const okEmails = new Set(result.filter(m => m.ErrorCode === 0).map(m => m.To.toLowerCase()));
-const succeeded = sentSecondaries.filter(s => okEmails.has(s.email.toLowerCase()));
-await recordSecondarySends(lines, cleaningLogTable, cleaningLogRecordId, succeeded, subscribersTable);
-```
-
-**(6) Quiet-hours path is unchanged.** If the record is flagged `Email Delayed`, the morning script handles the secondary line at send time, so the line that's active at 6:15am is the one that goes out. That's the correct behavior.
-
-#### 5c. Changes to the morning catch-up script (`wflfaR1X0DQAwzTU2`)
-
-Same module, same patches, with two differences:
-
-- It already loads all tables up front (to stay under the 30-query limit). Add `SECONDARY_CONFIG.subscriberStartField` and `subscriberMilestonesField` to the Subscribers fields list, add the litter/bags field to the Cleaning Log fields list, and add the cleaner consent field to the Cleaners list. Then call `loadSecondaryLines()` once at the top (one more query, total 5) and reuse `lines` for every delayed record.
-- `blockLogs` comes from `allCleaningLogs.records.filter(...)` instead of a new query.
-
-Query budget after changes: 5 loads + per-record updates (Email Delayed clear, Secondary Line stamp, line counters, milestone marks). Each update is a write, not a query, but watch the run log the first week for the 30-query ceiling if a night has many delayed cleanings.
+**Still to do at go-live:** the morning catch-up script needs the same module. Port it once the copy and code have settled in testing, then apply the secrets change to it too.
 
 ---
 
@@ -506,13 +226,27 @@ Per-line counters (`Emails Sent`, `First Sent`, `Last Sent`) live on the config 
 
 ### 9. Rollout and test plan
 
-1. Create the table and fields in section 3. Seed the 14 rows. Leave everything inactive.
-2. Edit Postmark template `45583435` per section 4. Send a test with `secondary` present and absent. Check HTML and text bodies, and the link.
-3. In a test copy of the immediate script (or the automation's test runner), run against a recent Cleaning Log record with `referral` active. Confirm: email has the line, link has UTM, Cleaning Log got stamped, `Emails Sent` incremented.
-4. Activate two rotation rows on purpose. Confirm the script logs the warning and sends with no secondary. Deactivate one.
-5. Activate `impact_stat` with no start dates populated. Confirm emails still go out with no secondary and the log says "missing placeholder data". Then populate one subscriber's start date and confirm they get the line.
-6. Deploy to both automations. Watch the 6:15am run log the next morning.
-7. Hand the president the table. The rotation runs from there.
+**Airtable cleanup first (found 2026-09-18):**
+
+- Cleaning Log has two link fields to the lines table: `Secondary Line` (the one the script writes, paired with `Cleaning Log 2` on the lines table) and `Email Secondary Lines` (paired with `Cleaning Log`). Delete `Cleaning Log` on the lines table, which removes `Email Secondary Lines` with it, then rename `Cleaning Log 2` to `Cleaning Logs` and add the `Sends (logs)` count on it.
+- Skip the `Active (Rotation) Count` guardrail field. A formula cannot count across rows, and the script already refuses to send a rotation line when more than one is active.
+- Delete the three blank rows, then import `airtable_automations/templates/email_secondary_lines_seed.csv` (14 rows, nothing active). `Requires Fields` has no options yet; let the import create them.
+
+**Test phase:**
+
+1. Postmark: duplicate template `45583435`, alias `cleaning-notification-test`. Paste the repo HTML and text bodies into the copy. Preview with each object in `sample_models.json`.
+2. Airtable: new automation "TEST: cleaning email secondary line". Trigger: Cleaning Log, when record matches conditions, `Block Code [string]` is not empty (same as live). Action: run script, paste `email_automation_v3_secondary.js`, input variable `recordId` = trigger record ID, add secret `POSTMARK_SERVER_TOKEN`, fill in `TEST.recipients`.
+3. Use the script step's Test button on a recent Cleaning Log record. Expect two emails with the yellow banner and nothing changed in Airtable.
+4. Turn the automation on. Every real cleaning now produces one banner-marked preview per tester, with a random line each time (`forceKeys: ["*"]`).
+5. After the copy settles, set `forceKeys: []` to rehearse the real rules: activate one rotation row; activate two on purpose and confirm the banner reports it; leave milestones inactive until the start-date question is settled.
+6. Known gap while testing: cleanings logged 9pm to 6am ET produce no test email.
+
+**Go-live:**
+
+1. Port the module into the catch-up script.
+2. Paste the tested HTML and text into template `45583435`.
+3. Paste the script into the **existing** live automation's script step with `MODE = "live"`, add the secret there, and switch the test automation off in the same sitting. Two automations in live mode would double-send.
+4. Watch the first runs and the next 6:15am catch-up log.
 
 ---
 
@@ -596,7 +330,7 @@ A four-across tile row between the card and the footer.
 
 - **Postmark Layouts.** If the redesign goes further, a Layout can hold the logo header and footer once, shared with the `referral-success` template, so brand tweaks happen in one place.
 - **Block page share button.** `docs/share_button.md` copies the bare `Block Page URL`. A logged-in subscriber's share should carry their `?code=` the way the email link does (subject to the incentive decision above).
-- **Secrets.** Both send scripts hardcode the Postmark server token, and `airtable_automations/postmark_automation_script.js` holds a second token plus a Slack webhook URL. All three scripts are deliberately **untracked in git** until this is fixed. The chat spec said Airtable has no secrets manager; the Airtable MCP exposes a `list_secrets` tool, so check the automation editor for a Secrets option first and fall back to a `<<POSTMARK_SERVER_TOKEN>>` placeholder in the repo copies if it is not available on this plan. Rotate both tokens and the webhook afterwards, since they have been pasted into chats.
+- **Secrets.** Airtable automations do have a secrets store: `input.secret("NAME")`, added per script step under Secrets. The V3 script already uses it. The two V2 send scripts and `airtable_automations/postmark_automation_script.js` still hardcode Postmark tokens and a Slack webhook, and stay **untracked in git** until they are switched over. Rotate both tokens and the webhook afterwards, since they have been pasted into chats.
 
 ---
 

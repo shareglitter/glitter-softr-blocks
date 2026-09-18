@@ -1,0 +1,34 @@
+{{#test_banner}}
+*** TEST SEND · rendered as {{as_name}} · log {{log_id}}
+*** Line: {{outcome}}
+*** Picked by: {{selection}}
+
+{{/test_banner}}
+We cleaned your block!
+
+Hi {{display_name}},
+
+Great news: {{block_name}} was cleaned on {{cleaning_date}} by your cleaner {{cleaner_first_name}}.
+
+See your cleaning photos and your block page:
+{{block_page_url}}
+{{#secondary}}
+
+{{text}}
+{{#cta}}
+{{label}}: {{url}}
+{{/cta}}
+{{/secondary}}
+{{#share}}
+
+Know a neighbor who'd love a cleaner block? Every neighbor who chips in keeps the cleanings coming. Your personal link, to share anywhere:
+{{url}}
+{{/share}}
+
+Questions or feedback about your cleaning? We'd love to hear from you: hello@shareglitter.com
+
+--
+Glitter · Philadelphia, PA
+You're receiving this because you opted in to cleaning notifications.
+Manage preferences: {{preference_url}}
+Unsubscribe: {{{pm:unsubscribe}}}

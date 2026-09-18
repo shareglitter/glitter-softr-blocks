@@ -1,0 +1,15 @@
+Key,Mode,Line Text,CTA Label,CTA URL,Milestone Months,Requires Fields,Notes
+referral,Rotation,Know a neighbor who'd want this for their block? Forward this email or share your block page.,Share your block page,{block_page_url},,,"Renders as the forward/share section, not as this text. Text and CTA here are only used if that section is retired."
+satisfaction,Rotation,How'd we do? Reply and let us know.,,,,,Depends on Reply-To reaching a monitored inbox.
+impact_stat,Rotation,This was your {cleaning_count_ordinal} cleaning. Your block has collected about {block_bags_total} bags so far.,See your block page,{block_page_url},,"cleaning_count, block_bags_total","Bag total is an estimate from the Trash select. Cleaning count uses Member Since, which is wrong for bulk-imported members."
+services_waitlist,Rotation,"Curious about compost, leaves, weeds, or snow? Join the waitlist.",Join the waitlist,,,,TODO: CTA URL (waitlist form). Until a URL is set this renders as text only.
+trash_can,Rotation,Ask about adding a trash can to your block.,Ask us,,,,TODO: CTA URL (form or mailto:).
+impact_fund,Rotation,Want to help a block that needs support? Chip in to the Impact Fund.,Impact Fund,,,,TODO: CTA URL.
+ambassador,Rotation,Want to help organize your block or bring in neighbors? Let us know.,Let us know,,,,TODO: CTA URL.
+review,Rotation,Enjoying Glitter? A quick Google review helps other blocks find us.,Leave a review,,,,TODO: CTA URL (Google review link).
+cleaner_spotlight,Rotation,"Your block was cleaned by {cleaner_first_name}, a neighbor earning a living wage doing it.",,,,cleaner_first_name,Drops for everyone until Cleaners has an 'OK to Name in Emails' checkbox and the script's cleanerConsentField points at it.
+social_share,Rotation,Tag @shareglitter if you post about your clean block.,,,,,
+frequency_upgrade,Rotation,Want your block cleaned twice a month instead of once?,Ask about upgrading,,,,"TODO: CTA URL. Shows to everyone, including blocks already at higher frequency."
+sponsor_block,Rotation,Know a block that could use this but can't afford it? Sponsor a cleaning for them.,Sponsor a block,,,,TODO: CTA URL.
+milestone_6mo,Milestone,Thank you for six months of clean blocks.,,,6,tenure_months,Keep inactive until Member Since is trustworthy for early members.
+milestone_12mo,Milestone,Thank you for a year of clean blocks.,,,12,tenure_months,Keep inactive until Member Since is trustworthy for early members.
