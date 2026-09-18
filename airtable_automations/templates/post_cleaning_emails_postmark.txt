@@ -2,6 +2,7 @@
 *** TEST SEND · rendered as {{as_name}} · log {{log_id}}
 *** Line: {{outcome}}
 *** Picked by: {{selection}}
+*** Live audience: {{audience}}
 
 {{/test_banner}}
 We cleaned your block!

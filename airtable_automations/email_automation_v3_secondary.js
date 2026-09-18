@@ -45,6 +45,9 @@ const TEST = {
     forceKeys: ["*"],
     // true = skip test sends during quiet hours, the way live sends are held back
     respectQuietHours: true,
+    // true = when nobody on the block is eligible (live would send nothing), still send the
+    // testers a preview rendered as the first linked subscriber. The banner says so.
+    previewWhenNoneEligible: true,
 };
 
 // ── Config ──────────────────────────────────────────────────
@@ -361,20 +364,32 @@ for (let i = 0; i < subscriberLinks.length; i += 100) {
 }
 
 const emailRecipients = [];
+const ineligible = [];   // same shape as emailRecipients, plus `why`; only used for test previews
 const skipped = { noOptIn: [], churned: [], noEmail: [] };
 console.log(`Block "${blockName}" has ${subscriberLinks.length} linked subscriber(s). Checking eligibility...`);
 
 for (const subscriber of subscribers) {
     const displayName = subscriber.getCellValue("Display Name") || "Unknown";
+    const email = subscriber.getCellValue("Email");
+    const info = {
+        email: email && typeof email === "object" ? email.email || email : email,
+        subscriberName: displayName,
+        subscriberId: subscriber.id,
+        referralCode: subscriber.getCellValueAsString("Referral Code"),
+        startDate: subscriber.getCellValue(SECONDARY_CONFIG.subscriberStartField),
+        milestonesSent: (subscriber.getCellValue(SECONDARY_CONFIG.subscriberMilestonesField) || []).map(x => x.name),
+    };
 
     if (!subscriber.getCellValue("Cleaning Notifications Opt-In")) {
         skipped.noOptIn.push(displayName);
+        ineligible.push({ ...info, why: "not opted in" });
         continue;
     }
 
     const statuses = subscriber.getCellValue("Contribution Status (from Active Subscriptions)");
     if (!statuses || statuses.length === 0) {
         skipped.churned.push(`${displayName} (no status)`);
+        ineligible.push({ ...info, why: "no contribution status" });
         continue;
     }
     const statusValues = Array.isArray(statuses)
@@ -382,23 +397,17 @@ for (const subscriber of subscribers) {
         : [statuses];
     if (!statusValues.some(s => !CHURN_STATUSES.includes(s))) {
         skipped.churned.push(`${displayName} (${statusValues.join(", ")})`);
+        ineligible.push({ ...info, why: "churned" });
         continue;
     }
 
-    const email = subscriber.getCellValue("Email");
     if (!email) {
         skipped.noEmail.push(displayName);
+        ineligible.push({ ...info, why: "no email on file" });
         continue;
     }
 
-    emailRecipients.push({
-        email: typeof email === "object" ? email.email || email : email,
-        subscriberName: displayName,
-        subscriberId: subscriber.id,
-        referralCode: subscriber.getCellValueAsString("Referral Code"),
-        startDate: subscriber.getCellValue(SECONDARY_CONFIG.subscriberStartField),
-        milestonesSent: (subscriber.getCellValue(SECONDARY_CONFIG.subscriberMilestonesField) || []).map(x => x.name),
-    });
+    emailRecipients.push(info);
     console.log(`  ✓ ${displayName} — opted in, status: ${statusValues.join(", ")}`);
 }
 
@@ -408,9 +417,19 @@ if (skipped.noOptIn.length > 0) console.log(`Not opted in (${skipped.noOptIn.len
 if (skipped.churned.length > 0) console.log(`Churned/no status (${skipped.churned.length}): ${skipped.churned.join(", ")}`);
 if (skipped.noEmail.length > 0) console.log(`No email on file (${skipped.noEmail.length}): ${skipped.noEmail.join(", ")}`);
 
+// What live would do with this cleaning. Shown in the test banner.
+let audienceNote = `${emailRecipients.length} of ${subscribers.length} linked subscriber(s) would get this email`;
+let previewPool = emailRecipients;
+
 if (emailRecipients.length === 0) {
-    console.log("No eligible recipients. Exiting.");
-    return;
+    if (IS_TEST && TEST.previewWhenNoneEligible && ineligible.length > 0) {
+        previewPool = ineligible;
+        audienceNote = `NOBODY. 0 of ${subscribers.length} linked subscriber(s) are eligible, so live sends nothing for this cleaning. Preview only, rendered as ${ineligible[0].subscriberName} (${ineligible[0].why}).`;
+        console.log("No eligible recipients: live would send nothing. Test mode is sending a preview anyway (TEST.previewWhenNoneEligible).");
+    } else {
+        console.log("No eligible recipients. Exiting.");
+        return;
+    }
 }
 
 // ── Pick the secondary line ─────────────────────────────────
@@ -490,7 +509,7 @@ function buildForSubscriber(r) {
     return { model, sec, outcome };
 }
 
-const targets = IS_TEST ? emailRecipients.slice(0, TEST.maxPreviewsPerLog) : emailRecipients;
+const targets = IS_TEST ? previewPool.slice(0, TEST.maxPreviewsPerLog) : emailRecipients;
 const messages = [];
 const sentSecondaries = [];
 
@@ -504,6 +523,7 @@ for (const r of targets) {
             line_key: secondaryKey,
             outcome: outcome,
             selection: selectionNote,
+            audience: audienceNote,
             as_name: r.subscriberName,
             log_id: cleaningLogRecordId,
         };

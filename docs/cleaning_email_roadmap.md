@@ -140,6 +140,7 @@ Built as one file: `airtable_automations/email_automation_v3_secondary.js`. It i
 |---|---|---|
 | Recipients | only `TEST.recipients` (hard allowlist, 1 to 3 addresses) | the block's eligible subscribers |
 | Rendered as | the first `TEST.maxPreviewsPerLog` eligible subscribers of the cleaned block | each subscriber |
+| Nobody eligible on the block | still sends the testers a preview, rendered as the first linked subscriber, with the banner saying live would send nothing (`TEST.previewWhenNoneEligible`, on by default) | sends nothing |
 | Template | alias `cleaning-notification-test` | id `45583435` |
 | Line choice | `TEST.forceKeys`: `["*"]` random tour of every row, a list of keys, or `[]` for the real rules | Active checkbox, date window, milestones, one-active guardrail |
 | Airtable writes | **none** (no `Email Delayed`, no log stamp, no counters, no `Milestones Sent`) | all of them |
@@ -158,7 +159,7 @@ Other differences from V2 worth knowing:
 - Bag totals under 1 and cleaning counts of 0 count as missing data, so the line drops instead of saying "about 0 bags".
 - `cleanerConsentField` is `null`, so `{cleaner_first_name}` is never available to a line and `cleaner_spotlight` always drops. Point it at the checkbox once that exists.
 
-`node airtable_automations/tests/harness_v3.js` runs the script against a mocked base and mocked Postmark through ten scenarios (allowlist, forced lines, dropped placeholders, quiet hours, live write-back). Run it after every script edit.
+`node airtable_automations/tests/harness_v3.js` runs the script against a mocked base and mocked Postmark through thirteen scenarios (allowlist, nobody-eligible blocks, forced lines, dropped placeholders, quiet hours, live write-back). Run it after every script edit.
 
 **Still to do at go-live:** the morning catch-up script needs the same module. Port it once the copy and code have settled in testing, then apply the secrets change to it too.
 

@@ -6,7 +6,7 @@
 const fs = require("fs");
 const src = fs.readFileSync(process.argv[2] || require("path").join(__dirname, "..", "email_automation_v3_secondary.js"), "utf8");
 function rec(id, cells) { return { id, getCellValue: f => (f in cells ? cells[f] : null), getCellValueAsString: f => String(cells[f] ?? "") }; }
-async function run(name, { patch = s => s, lines, hour = 14, consent = false }) {
+async function run(name, { patch = s => s, lines, hour = 14, consent = false, noneOptedIn = false }) {
   const writes = []; let sent = null;
   const tables = {
     "Cleaning Log": [rec("recLOG1", { Block: [{ id: "recBLK" }], "Date and Time": "2026-09-18T15:00:00Z", Cleaner: [{ id: "recCLN" }], Trash: { name: "Medium. Up to 1 full bag" } }),
@@ -19,6 +19,7 @@ async function run(name, { patch = s => s, lines, hour = 14, consent = false }) 
       rec("recS3", { Email: "optedout@example.com", "Cleaning Notifications Opt-In": false, "Display Name": "Opted Out" })],
     "Email Secondary Lines": lines,
   };
+  if (noneOptedIn) tables["Subscribers"] = tables["Subscribers"].map(r => rec(r.id, { Email: r.getCellValue("Email"), "Display Name": r.getCellValue("Display Name"), "Referral Code": r.getCellValue("Referral Code"), "Member Since": r.getCellValue("Member Since"), "Cleaning Notifications Opt-In": false }));
   const base = { getTable: n => ({
     selectRecordAsync: async id => tables[n].find(r => r.id === id) || null,
     selectRecordsAsync: async o => ({ records: o && o.recordIds ? tables[n].filter(r => o.recordIds.includes(r.id)) : tables[n] }),
@@ -72,5 +73,11 @@ const only = k => s => fill(s).replace('forceKeys: ["*"]', `forceKeys: ${JSON.st
   console.assert(r.sent.length === 2 && r.sent[0].To === "real.customer1@example.com" && !r.sent[0].TemplateModel.test_banner && r.sent[1].TemplateModel.share && r.writes.length === 4, "FAIL 9");
   r = await run("10. LIVE: two rotation lines active → no rotation line, milestone still ok", { lines: [...ALL.slice(0, 1), rot("review", "x", { Active: true }), ALL[4]], patch: s => s.replace('const MODE = "test"', 'const MODE = "live"') });
   console.assert(!r.sent[1].TemplateModel.secondary && !r.sent[1].TemplateModel.share, "FAIL 10");
+  r = await run("11. test, nobody eligible → preview still goes to testers only, banner says live sends nothing", { lines: ALL, patch: only(["review"]), noneOptedIn: true });
+  console.assert(r.sent && r.sent.length === 2 && r.sent.every(m => ["sid@test.com", "prez@test.com"].includes(m.To)) && /NOBODY/.test(r.sent[0].TemplateModel.test_banner.audience) && r.writes.length === 0, "FAIL 11");
+  r = await run("12. test, nobody eligible, preview switched off → nothing sent", { lines: ALL, patch: s => only(["review"])(s).replace("previewWhenNoneEligible: true", "previewWhenNoneEligible: false"), noneOptedIn: true });
+  console.assert(!r.sent, "FAIL 12");
+  r = await run("13. LIVE, nobody eligible → nothing sent, nothing written", { lines: ALL, patch: s => s.replace('const MODE = "test"', 'const MODE = "live"'), noneOptedIn: true });
+  console.assert(!r.sent && r.writes.length === 0, "FAIL 13");
   console.log("\nharness done");
 })();
