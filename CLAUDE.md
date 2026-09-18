@@ -26,8 +26,9 @@ and the live page drift until someone re-pastes.
   gap and the planned cookie fix.
 - `docs/cleaning_email.md` — the post-cleaning Postmark email: the two Airtable
   scripts that must stay in sync, the template model and the forward/share
-  links. `docs/cleaning_email_roadmap.md` holds the not-yet-built thumbs
-  up/down and four-across sections.
+  links. `docs/cleaning_email_roadmap.md` holds everything not yet built: the
+  rotating secondary-line slot, thumbs up/down, the four-across row, and the
+  one-secondary-element-per-email rule they all have to respect.
 
 ## Conventions
 

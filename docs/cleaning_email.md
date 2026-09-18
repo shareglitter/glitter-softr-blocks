@@ -68,6 +68,9 @@ page; the referrer just isn't credited automatically.
 
 ## Planned, not built
 
-Thumbs up / down feedback and the four-across "4 more ways to get involved"
-row are sketched in `docs/cleaning_email_roadmap.md`, with the open questions
-for the president.
+Everything not yet built lives in `docs/cleaning_email_roadmap.md`: the
+rotating one-line secondary slot from the president's test-ideas doc, the
+thumbs up / down, the four-across "4 more ways to get involved" row, and the
+open questions. Read its "How the pieces fit" section before changing the
+share section, because the share section becomes the `referral` entry of that
+rotation.
