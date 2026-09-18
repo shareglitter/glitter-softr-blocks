@@ -226,20 +226,28 @@ Per-line counters (`Emails Sent`, `First Sent`, `Last Sent`) live on the config 
 
 ### 9. Rollout and test plan
 
-**Airtable cleanup first (found 2026-09-18):**
+**State as checked through the Airtable API on 2026-09-18 (evening):**
 
-- Cleaning Log has two link fields to the lines table: `Secondary Line` (the one the script writes, paired with `Cleaning Log 2` on the lines table) and `Email Secondary Lines` (paired with `Cleaning Log`). Delete `Cleaning Log` on the lines table, which removes `Email Secondary Lines` with it, then rename `Cleaning Log 2` to `Cleaning Logs` and add the `Sends (logs)` count on it.
-- Skip the `Active (Rotation) Count` guardrail field. A formula cannot count across rows, and the script already refuses to send a rotation line when more than one is active.
-- Delete the three blank rows, then import `airtable_automations/templates/email_secondary_lines_seed.csv` (14 rows, nothing active). `Requires Fields` has no options yet; let the import create them.
+| Item | State |
+|---|---|
+| `Email Secondary Lines` table (`tblKKLTOfuKu6DmEL`) | Exists with the section 3a fields. The duplicate link was removed and the remaining one renamed `Cleaning Logs`. `Sends (logs)` count not added yet. |
+| Seed rows | Imported by hand from `email_secondary_lines_seed.csv` per Sid, **but the API returned 0 records in this table on two reads right afterwards.** Confirm the 14 rows are really in this table (a CSV import that was previewed but not saved, or saved into another base, looks the same from the UI tab you were on). With no rows, every test email's banner reads "NO LINE: no usable row matches forceKeys". |
+| Cleaning Log | `Secondary Line` (link) and `Key (from Secondary Line)` (lookup) are right. A leftover **text** field named `Email Secondary Lines` remains from deleting the duplicate link; delete it. |
+| Subscribers | `Milestones Sent` exists with options `6 months` / `12 months`. |
+| Test automation | `wfl9ZtmXDUoMB64uJ`, "New Cleaning Log: Last Clean Date & Send Email Notification copy", **not turned on yet**. A duplicate of the live automation with the write steps removed (no Last Clean Date update, no Schedule matcher, no First Clean Date branch); what remains is the read-only "Find associated block" step and the V3 script with `MODE = "test"`, `forceKeys: ["*"]`, input `recordId`. Rename it to start with "TEST:" so nobody mistakes it for the live one. |
+| Test recipients | Two staff addresses, both Sid's for now; add the president's when she is ready to receive them (max 3). |
+| `Active (Rotation) Count` field | Skipped on purpose. A formula cannot count across rows, and the script already refuses to send a rotation line when more than one is active. |
+| Catch-up script | Not ported. V2 still live. |
 
 **Test phase:**
 
 1. Postmark: duplicate template `45583435`, alias `cleaning-notification-test`. Paste the repo HTML and text bodies into the copy. Preview with each object in `sample_models.json`.
-2. Airtable: new automation "TEST: cleaning email secondary line". Trigger: Cleaning Log, when record matches conditions, `Block Code [string]` is not empty (same as live). Action: run script, paste `email_automation_v3_secondary.js`, input variable `recordId` = trigger record ID, add secret `POSTMARK_SERVER_TOKEN`, fill in `TEST.recipients`.
-3. Use the script step's Test button on a recent Cleaning Log record. Expect two emails with the yellow banner and nothing changed in Airtable.
-4. Turn the automation on. Every real cleaning now produces one banner-marked preview per tester, with a random line each time (`forceKeys: ["*"]`).
+2. Airtable: test automation as described in the table above, with the secret `POSTMARK_SERVER_TOKEN` added on the script step.
+3. Use the script step's Test button on a recent Cleaning Log record. Expect one banner-marked email per test recipient and nothing changed in Airtable. If Postmark answers with a template-not-found error, the alias in step 1 is missing or misspelled.
+4. Turn the automation on. Every real cleaning now produces one preview per tester, with a random line each time (`forceKeys: ["*"]`).
 5. After the copy settles, set `forceKeys: []` to rehearse the real rules: activate one rotation row; activate two on purpose and confirm the banner reports it; leave milestones inactive until the start-date question is settled.
 6. Known gap while testing: cleanings logged 9pm to 6am ET produce no test email.
+7. Every script edit: change the repo file first, run `node airtable_automations/tests/harness_v3.js`, then paste. Copy edits to lines happen in the Airtable table and need no paste at all.
 
 **Go-live:**
 
