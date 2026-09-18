@@ -1,0 +1,738 @@
+<style>
+  .block-info-section-li {
+    max-width: 100%;
+    margin: 0 auto;
+    padding: 1.5rem 0.1rem 0.5rem;
+    font-family: 'Epilogue', sans-serif;
+  }
+
+  .block-info-layout-li {
+    display: flex;
+    gap: 2rem;
+    align-items: flex-start;
+  }
+
+  .block-info-left-li {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .block-info-right-li {
+    flex: 1;
+    flex-shrink: 0;
+    min-width: 280px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-end;
+  }
+
+  .block-info-right-li img {
+    width: 100%;
+    height: 100%;
+    border-radius: 12px;
+    display: block;
+    object-fit: cover;
+  }
+
+  /* Cleaner row */
+  .cleaner-row-li {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.25rem;
+  }
+
+  .cleaner-avatar-li {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #d3f5ec;
+  }
+
+  .cleaner-info-li {
+    flex: 1;
+    min-width: 160px;
+  }
+
+  .cleaner-info-primary-li {
+    font-size: 1.125rem;
+    color: #352f44;
+    margin: 0;
+    line-height: 1.4;
+  }
+
+  .cleaner-info-primary-li strong {
+    font-weight: 700;
+  }
+
+  .cleaner-info-secondary-li {
+    font-size: 0.875rem;
+    color: #6b6b6b;
+    margin: 0.125rem 0 0;
+  }
+
+  .share-btn-li {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1.5rem;
+    border: 2px solid #157275;
+    border-radius: 999px;
+    background: transparent;
+    color: #157275;
+    font-family: 'Epilogue', sans-serif;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background 0.15s;
+  }
+
+  .share-btn-li:hover {
+    background: #d3f5ec;
+  }
+
+  .share-btn-li svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  /* ============================================================
+     MY PLEDGE CARD (shown when user has a pledge on this block)
+     ============================================================ */
+  .gc-my-pledge-card {
+    background: #ffffff;
+    border: 2px solid #e0dbd2;
+    border-radius: 12px;
+    padding: 24px;
+    margin-top: 0.5rem;
+  }
+
+  .gc-my-pledge-header {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: #6b6b6b;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin: 0 0 8px 0;
+  }
+
+  .gc-my-pledge-amount {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #157275;
+    line-height: 1.2;
+    margin: 0 0 4px 0;
+  }
+
+  .gc-my-pledge-amount .gc-mo {
+    font-size: 0.875rem;
+    font-weight: 400;
+    color: #6b6b6b;
+  }
+
+  .gc-my-pledge-loading {
+    font-size: 0.9375rem;
+    color: #6b6b6b;
+    font-style: italic;
+  }
+
+  .gc-my-pledge-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 16px;
+    flex-wrap: wrap;
+  }
+
+  .gc-my-pledge-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 24px;
+    border-radius: 100px;
+    font-family: 'Epilogue', sans-serif;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background 0.2s, color 0.2s;
+  }
+
+  .gc-my-pledge-btn svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .gc-my-pledge-btn--edit {
+    background: #ffa25c;
+    color: #ffffff;
+    border: none;
+  }
+
+  .gc-my-pledge-btn--edit:hover {
+    background: #e8914f;
+  }
+
+  .gc-my-pledge-btn--billing {
+    background: transparent;
+    color: #352f44;
+    border: 2px solid #352f44;
+  }
+
+  .gc-my-pledge-btn--billing:hover {
+    background: #352f44;
+    color: #ffffff;
+  }
+
+  /* ============================================================
+     PLEDGE SELECTOR (shown when user has NO pledge on this block)
+     ============================================================ */
+  .gc-pledge-options-li {
+    display: flex;
+    gap: 12px;
+    margin-top: 0.5rem;
+  }
+
+  .gc-pledge-option-li {
+    flex: 1;
+    background: #ffffff;
+    border: 2px solid #e0dbd2;
+    border-radius: 12px;
+    padding: 16px 10px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  .gc-pledge-option-li:hover {
+    border-color: #157275;
+  }
+
+  .gc-pledge-option-li.gc-selected {
+    border-color: #157275;
+    box-shadow: 0 0 0 1px #157275;
+  }
+
+  .gc-pledge-radio-li {
+    width: 18px;
+    height: 18px;
+    border: 2px solid #ccc;
+    border-radius: 50%;
+    margin: 0 auto 10px;
+    position: relative;
+    transition: border-color 0.2s;
+  }
+
+  .gc-pledge-option-li.gc-selected .gc-pledge-radio-li {
+    border-color: #157275;
+  }
+
+  .gc-pledge-option-li.gc-selected .gc-pledge-radio-li::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 8px;
+    height: 8px;
+    background: #157275;
+    border-radius: 50%;
+  }
+
+  .gc-pledge-amount-li {
+    font-size: 26px;
+    font-weight: 700;
+    color: #157275;
+    line-height: 1.2;
+  }
+
+  .gc-pledge-amount-li .gc-mo {
+    font-size: 13px;
+    font-weight: 400;
+    color: #666;
+  }
+
+  .gc-pledge-amount-li.gc-other-text {
+    font-size: 22px;
+    color: #352f44;
+  }
+
+  .gc-pledge-label-li {
+    font-size: 12px;
+    font-weight: 600;
+    color: #444;
+    margin-top: 4px;
+  }
+
+  .gc-pledge-btn-wrap-li {
+    margin-top: 14px;
+    display: none;
+  }
+
+  .gc-pledge-option-li.gc-selected .gc-pledge-btn-wrap-li {
+    display: block;
+  }
+
+  .gc-pledge-btn-li {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #ffa25c;
+    color: #ffffff;
+    border: none;
+    border-radius: 100px;
+    padding: 12px 28px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s;
+    text-decoration: none;
+    font-family: inherit;
+  }
+
+  .gc-pledge-btn-li:hover {
+    background: #e8914f;
+  }
+
+  .gc-pledge-btn-li svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .gc-pledge-other-input-li {
+    display: none;
+    margin-top: 8px;
+  }
+
+  .gc-pledge-option-li.gc-other.gc-selected .gc-pledge-other-input-li {
+    display: block;
+  }
+
+  .gc-pledge-other-input-li input {
+    width: 100%;
+    padding: 6px 10px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 15px;
+    text-align: center;
+    outline: none;
+    font-family: inherit;
+    box-sizing: border-box;
+  }
+
+  .gc-pledge-other-input-li input:focus {
+    border-color: #157275;
+  }
+
+  .gc-li-cross-sell-note {
+    font-size: 0.875rem;
+    color: #6b6b6b;
+    margin-top: 1rem;
+    font-style: italic;
+  }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .block-info-layout-li {
+      flex-direction: column;
+    }
+
+    .block-info-right-li {
+      min-width: unset;
+      width: 100%;
+    }
+
+    .block-info-section-li {
+      padding: 1.5rem 1rem 0.5rem;
+    }
+
+    .share-btn-li {
+      width: 100%;
+      justify-content: center;
+    }
+
+    .gc-my-pledge-actions {
+      flex-direction: column;
+    }
+
+    .gc-my-pledge-btn {
+      width: 100%;
+      justify-content: center;
+    }
+
+    .gc-pledge-options-li {
+      flex-wrap: wrap;
+    }
+
+    .gc-pledge-option-li {
+      flex: 1 1 calc(50% - 6px);
+    }
+  }
+</style>
+
+<div class="block-info-section-li">
+  <div class="block-info-layout-li">
+
+    <!-- Left: cleaner + pledge card OR pledge selector -->
+    <div class="block-info-left-li">
+
+      <div class="cleaner-row-li">
+        <img
+          class="cleaner-avatar-li"
+          data-glitter-field="Cleaner Photo"
+          src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+          alt="Cleaner photo"
+          onerror="this.style.display='none'"
+        />
+        <div class="cleaner-info-li">
+          <p class="cleaner-info-primary-li">
+            Cleaned by <strong>{Cleaner Name}</strong>
+            on <strong>{Last Cleanup (Softr)}</strong>
+          </p>
+          <p class="cleaner-info-secondary-li">
+            {Total Cleans} cleanings, With Glitter since {With Glitter Since}
+          </p>
+        </div>
+        <a class="share-btn-li" href="javascript:void(0)"
+          onclick="navigator.share ? navigator.share({title:'Glitter Block', url:window.location.href}) : navigator.clipboard.writeText(window.location.href).then(function(){alert('Link copied!')})">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round">
+            <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+            <polyline points="16 6 12 2 8 6" />
+            <line x1="12" y1="2" x2="12" y2="15" />
+          </svg>
+          Share This Page
+        </a>
+      </div>
+
+      <!-- ====== VIEW A: MY PLEDGE CARD (has pledge on this block) ====== -->
+      <div id="gcViewPledgeCard" style="display: none;">
+        <div class="gc-my-pledge-card">
+          <p class="gc-my-pledge-header">Your Pledge</p>
+          <p class="gc-my-pledge-amount" id="gcMyPledgeAmount"></p>
+          <div class="gc-my-pledge-actions">
+            <a href="/pledge" class="gc-my-pledge-btn gc-my-pledge-btn--edit" id="gcEditPledgeBtn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+              </svg>
+              Edit Pledge
+            </a>
+            <a href="#" class="gc-my-pledge-btn gc-my-pledge-btn--billing" id="gcBillingBtn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <rect x="1" y="4" width="22" height="16" rx="2" ry="2" />
+                <line x1="1" y1="10" x2="23" y2="10" />
+              </svg>
+              Billing
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- ====== VIEW B: PLEDGE SELECTOR (no pledge on this block) ====== -->
+      <div id="gcViewPledgeSelector" style="display: none;">
+        <p class="gc-li-cross-sell-note">You're not yet pledged on this block. Join your neighbors!</p>
+        <div class="gc-pledge-options-li" id="gcPledgeOptionsLI">
+          <div class="gc-pledge-option-li gc-selected" data-amount="10">
+            <div class="gc-pledge-radio-li"></div>
+            <div class="gc-pledge-amount-li">$10<span class="gc-mo">/mo</span></div>
+            <div class="gc-pledge-label-li">Starter Pledge</div>
+            <div class="gc-pledge-btn-wrap-li">
+              <a href="#pledge" class="gc-pledge-btn-li gc-pledge-link-li">
+                Pledge
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                  stroke-linejoin="round">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+              </a>
+            </div>
+          </div>
+
+          <div class="gc-pledge-option-li" data-amount="20">
+            <div class="gc-pledge-radio-li"></div>
+            <div class="gc-pledge-amount-li">$20<span class="gc-mo">/mo</span></div>
+            <div class="gc-pledge-label-li">Most Popular</div>
+            <div class="gc-pledge-btn-wrap-li">
+              <a href="#pledge" class="gc-pledge-btn-li gc-pledge-link-li">
+                Pledge
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                  stroke-linejoin="round">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+              </a>
+            </div>
+          </div>
+
+          <div class="gc-pledge-option-li" data-amount="50">
+            <div class="gc-pledge-radio-li"></div>
+            <div class="gc-pledge-amount-li">$50<span class="gc-mo">/mo</span></div>
+            <div class="gc-pledge-label-li">Block Champion</div>
+            <div class="gc-pledge-btn-wrap-li">
+              <a href="#pledge" class="gc-pledge-btn-li gc-pledge-link-li">
+                Pledge
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                  stroke-linejoin="round">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+              </a>
+            </div>
+          </div>
+
+          <div class="gc-pledge-option-li gc-other" data-amount="other">
+            <div class="gc-pledge-radio-li"></div>
+            <div class="gc-pledge-amount-li gc-other-text">Other</div>
+            <div class="gc-pledge-label-li">Pay-What-You-Can</div>
+            <div class="gc-pledge-other-input-li">
+              <input type="number" placeholder="$" min="1" id="gcOtherAmtLI">
+            </div>
+            <div class="gc-pledge-btn-wrap-li">
+              <a href="#pledge" class="gc-pledge-btn-li gc-pledge-link-li">
+                Pledge
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                  stroke-linejoin="round">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Right: map (dynamic from Block Map field, fallback to default) -->
+    <div class="block-info-right-li">
+      <img
+        id="gcBlockMapLI"
+        src="https://images.squarespace-cdn.com/content/v1/63c45f967196096ae1a4037b/c13c71fb-a379-4994-b66d-a2f2f220d9c2/WaveAndBroomRocky.png?format=1000w"
+        alt="Block map"
+        style="max-width: 400px; max-height: 400px;"
+        onerror="this.onerror=null;this.src='https://images.squarespace-cdn.com/content/v1/63c45f967196096ae1a4037b/c13c71fb-a379-4994-b66d-a2f2f220d9c2/WaveAndBroomRocky.png?format=1000w';"
+      />
+    </div>
+
+  </div>
+</div>
+
+<script>
+  (function() {
+  'use strict';
+
+  var MAX_ATTEMPTS  = 40;
+  var POLL_INTERVAL = 500;
+  var attempts = 0;
+
+  function checkPledgeAndToggle() {
+    var mcBlock = document.getElementById('my-contribution');
+
+    // If #my-contribution hasn't rendered yet, keep polling
+    if (!mcBlock) {
+      attempts++;
+      if (attempts <= MAX_ATTEMPTS) {
+        console.log('GC Logged-In Block: waiting for #my-contribution (attempt ' + attempts + ')');
+        setTimeout(checkPledgeAndToggle, POLL_INTERVAL);
+      } else {
+        // My Contribution never appeared -- show pledge selector as fallback
+        console.warn('GC Logged-In Block: #my-contribution not found, showing pledge selector');
+        showPledgeSelector();
+      }
+      return;
+    }
+
+    // Scrape pledge amount from My Contribution block
+    var pledgeAmount = null;
+    var allText = mcBlock.querySelectorAll('h1, h2, h3, h4, h5, h6, p, span, div');
+    allText.forEach(function(el) {
+      var text = el.textContent.trim();
+      if (/^\$\d/.test(text) && !pledgeAmount) {
+        pledgeAmount = text;
+      }
+    });
+
+    // Scrape button links
+    var editLink = null;
+    var billingLink = null;
+    var links = mcBlock.querySelectorAll('a');
+    links.forEach(function(a) {
+      var text = a.textContent.trim().toLowerCase();
+      if (text.indexOf('edit') !== -1 || text.indexOf('pledge') !== -1) {
+        editLink = a.href;
+      }
+      if (text.indexOf('billing') !== -1 || text.indexOf('payment') !== -1) {
+        billingLink = a.href;
+      }
+    });
+    var buttons = mcBlock.querySelectorAll('button');
+    buttons.forEach(function(btn) {
+      var text = btn.textContent.trim().toLowerCase();
+      if (text.indexOf('edit') !== -1) editLink = editLink || '#';
+      if (text.indexOf('billing') !== -1) billingLink = billingLink || '#';
+    });
+
+    console.log('GC Logged-In Block: scraped amount=' + pledgeAmount +
+                ', editLink=' + editLink + ', billingLink=' + billingLink);
+
+    if (pledgeAmount) {
+      // User HAS a pledge on this block -- show pledge card
+      showPledgeCard(pledgeAmount, editLink, billingLink);
+    } else {
+      // User has NO pledge on this block -- show pledge selector
+      console.log('GC Logged-In Block: no pledge found for this block, showing cross-sell selector');
+      showPledgeSelector();
+    }
+  }
+
+  function showPledgeCard(amount, editLink, billingLink) {
+    var cardView = document.getElementById('gcViewPledgeCard');
+    if (cardView) cardView.style.display = 'block';
+
+    var amountEl = document.getElementById('gcMyPledgeAmount');
+    // Strip trailing "per mo" or "/mo" if already in the scraped amount
+    var cleanAmount = amount.replace(/\s*(per\s*mo|\/mo)\.?\s*$/i, '').trim();
+    if (amountEl) amountEl.innerHTML = cleanAmount + '<span class="gc-mo"> per mo</span>';
+
+    var editBtn = document.getElementById('gcEditPledgeBtn');
+    // Keep /pledge as default; only override if scrape found a real link
+    if (editBtn && editLink && editLink !== '#') editBtn.href = editLink;
+
+    var billingBtn = document.getElementById('gcBillingBtn');
+    if (billingBtn && billingLink) {
+      billingBtn.href = billingLink;
+    } else if (billingBtn) {
+      billingBtn.style.display = 'none';
+    }
+
+    console.log('GC Logged-In Block: showing pledge card view');
+  }
+
+  function showPledgeSelector() {
+    var selectorView = document.getElementById('gcViewPledgeSelector');
+    if (selectorView) selectorView.style.display = 'block';
+
+    // Initialize pledge selector interactions
+    initPledgeSelector();
+
+    console.log('GC Logged-In Block: showing pledge selector view');
+  }
+
+  function initPledgeSelector() {
+    var options = document.querySelectorAll('#gcPledgeOptionsLI .gc-pledge-option-li');
+
+    options.forEach(function(opt) {
+      opt.addEventListener('click', function() {
+        options.forEach(function(o) { o.classList.remove('gc-selected'); });
+        opt.classList.add('gc-selected');
+
+        if (opt.dataset.amount === 'other') {
+          var input = opt.querySelector('input');
+          if (input) setTimeout(function() { input.focus(); }, 100);
+        }
+      });
+    });
+
+    var otherInput = document.getElementById('gcOtherAmtLI');
+    if (otherInput) {
+      otherInput.addEventListener('click', function(e) { e.stopPropagation(); });
+    }
+
+    // Wire pledge buttons to modal
+    document.querySelectorAll('#gcPledgeOptionsLI .gc-pledge-btn-li').forEach(function(btn) {
+      btn.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        var card = btn.closest('.gc-pledge-option-li');
+        var amount = card ? card.dataset.amount : '';
+
+        if (amount === 'other') {
+          var input = document.getElementById('gcOtherAmtLI');
+          amount = input && input.value ? input.value : '';
+        }
+
+        if (window.openPledgeModal) {
+          window.openPledgeModal(amount ? { amount: amount } : {});
+        }
+      });
+    });
+  }
+
+  // Kick off after a delay (let Softr render My Contribution)
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() {
+      setTimeout(checkPledgeAndToggle, 2500);
+    });
+  } else {
+    setTimeout(checkPledgeAndToggle, 2500);
+  }
+})();
+
+/* ---- DYNAMIC BLOCK MAP (logged-in) ---- */
+(function() {
+  'use strict';
+
+  var FALLBACK_SRC = 'https://images.squarespace-cdn.com/content/v1/63c45f967196096ae1a4037b/c13c71fb-a379-4994-b66d-a2f2f220d9c2/WaveAndBroomRocky.png?format=1000w';
+  var MAX_ATTEMPTS = 30;
+  var POLL_INTERVAL = 500;
+  var attempts = 0;
+
+  function trySetBlockMap() {
+    var record = window.glitterRecord;
+
+    if (!record) {
+      attempts++;
+      if (attempts <= MAX_ATTEMPTS) {
+        setTimeout(trySetBlockMap, POLL_INTERVAL);
+      } else {
+        console.log('GC Block Map LI: glitterRecord not found, keeping fallback');
+      }
+      return;
+    }
+
+    var mapUrl = extractMapUrl(record['Block Map']);
+
+    if (mapUrl) {
+      var img = document.getElementById('gcBlockMapLI');
+      if (img) {
+        img.src = mapUrl;
+        console.log('GC Block Map LI: loaded dynamic map');
+      }
+    } else {
+      console.log('GC Block Map LI: no map URL found, keeping fallback');
+    }
+  }
+
+  function extractMapUrl(raw) {
+    if (!raw) return null;
+    var str = String(raw).trim();
+    if (!str) return null;
+
+    // If it's already a URL (starts with http)
+    if (/^https?:\/\//.test(str)) return str;
+
+    // If Softr rendered it as HTML with an <img> tag, extract the src
+    var match = str.match(/src=["']([^"']+)["']/);
+    if (match) return match[1];
+
+    // If it's a comma-separated list of URLs, take the first
+    var parts = str.split(',');
+    for (var i = 0; i < parts.length; i++) {
+      var part = parts[i].trim();
+      if (/^https?:\/\//.test(part)) return part;
+    }
+
+    return null;
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() {
+      setTimeout(trySetBlockMap, 2000);
+    });
+  } else {
+    setTimeout(trySetBlockMap, 2000);
+  }
+})();
+</script>

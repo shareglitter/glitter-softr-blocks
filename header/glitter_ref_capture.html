@@ -1,0 +1,67 @@
+<!-- ============================================================
+     GLITTER REFERRAL CAPTURE - Softr site header snippet
+     ============================================================
+
+     Paste into Softr: Settings > Custom Code > Header (site-wide), so a
+     code seen on any page (homepage, a block page, a landing page) is
+     still there when the visitor reaches a signup form.
+
+     The same IIFE is inlined, guarded, in blocks/pledge_modal.html and
+     blocks/glitter_homepage_signup.html. On pages that carry this header
+     the inlined copy is a no-op; on pages that don't (Squarespace) it is
+     the only copy. Keep the three in sync.
+
+     On every page load, reads ?ref=, ?sref= and ?code= from the URL. The
+     first one present, in that order, is stored in localStorage as
+       glitter_ref = { code, source: 'ref'|'sref'|'code', ts }
+     Entries older than 30 days are ignored on read.
+
+     API (window.glitterRef):
+       read()             -> { code, source, ts } or null
+       write(code, source) -> stores and returns the entry
+       capture()          -> reads the URL, stores if a param is present,
+                             returns read()
+     ============================================================ -->
+<script>
+(function () {
+  if (window.glitterRef) return;
+  var KEY = 'glitter_ref';
+  var TTL_MS = 30 * 24 * 60 * 60 * 1000;
+  var PARAMS = ['ref', 'sref', 'code'];
+
+  function read() {
+    try {
+      var raw = localStorage.getItem(KEY);
+      if (!raw) return null;
+      var entry = JSON.parse(raw);
+      if (!entry || typeof entry.code !== 'string' || !entry.code) return null;
+      if (typeof entry.ts !== 'number' || Date.now() - entry.ts > TTL_MS) return null;
+      return entry;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function write(code, source) {
+    code = (code || '').trim();
+    if (!code) return null;
+    var entry = { code: code, source: source, ts: Date.now() };
+    try { localStorage.setItem(KEY, JSON.stringify(entry)); } catch (e) {}
+    return entry;
+  }
+
+  function capture() {
+    try {
+      var params = new URLSearchParams(window.location.search);
+      for (var i = 0; i < PARAMS.length; i++) {
+        var val = (params.get(PARAMS[i]) || '').trim();
+        if (val) { write(val, PARAMS[i]); break; }
+      }
+    } catch (e) {}
+    return read();
+  }
+
+  window.glitterRef = { KEY: KEY, read: read, write: write, capture: capture };
+  capture();
+})();
+</script>

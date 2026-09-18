@@ -1,0 +1,661 @@
+<style>
+  .share-btn .gc-share-toast {
+    color: #157275;
+  }
+
+  .block-info-section {
+    max-width: 100%;
+    width: 100%;
+    margin: 0 auto;
+    padding: 1.5rem 0.1rem 0.5rem;
+    font-family: 'Epilogue', sans-serif;
+    box-sizing: border-box;
+  }
+
+  /* Force Softr's custom code wrapper to give us full width */
+  #custom-code20>section>div,
+  #custom-code20>section>div>div {
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+
+  /* Full-width block headline */
+  .block-headline-wrap {
+    width: 100%;
+    clear: both;
+  }
+
+  .block-headline-title {
+    font-size: 2.25rem;
+    font-weight: 900;
+    color: #352f44;
+    margin: 0 0 0.25rem;
+    line-height: 1.15;
+    width: 100%;
+  }
+
+  .block-headline-sub {
+    font-size: 1.0625rem;
+    color: #6b6b6b;
+    margin: 0 0 1.5rem;
+    width: 100%;
+  }
+
+  .block-info-layout {
+    display: flex;
+    gap: 2rem;
+    align-items: flex-start;
+  }
+
+  .block-info-left {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .block-info-right {
+    flex: 1;
+    flex-shrink: 0;
+    min-width: 280px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-end;
+  }
+
+  .block-info-right img {
+    width: 100%;
+    height: 100%;
+    border-radius: 12px;
+    display: block;
+    object-fit: cover;
+  }
+
+  /* Cleaner row */
+  .cleaner-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.25rem;
+  }
+
+  .cleaner-avatar {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #d3f5ec;
+  }
+
+  .cleaner-info {
+    flex: 1;
+    min-width: 160px;
+  }
+
+  .cleaner-info-primary {
+    font-size: 1.125rem;
+    color: #352f44;
+    margin: 0;
+    line-height: 1.4;
+  }
+
+  .cleaner-info-primary strong {
+    font-weight: 700;
+  }
+
+  .cleaner-info-secondary {
+    font-size: 0.875rem;
+    color: #6b6b6b;
+    margin: 0.125rem 0 0;
+  }
+
+  .share-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1.5rem;
+    border: 2px solid #157275;
+    border-radius: 999px;
+    background: transparent;
+    color: #157275;
+    font-family: 'Epilogue', sans-serif;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background 0.15s;
+  }
+
+  .share-btn:hover {
+    background: #d3f5ec;
+  }
+
+  .share-btn svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  /* ============================================================
+     PLEDGE SELECTOR - integrated into block info
+     ============================================================ */
+  .gc-pledge-options {
+    display: flex;
+    gap: 12px;
+    margin-top: 0.5rem;
+  }
+
+  .gc-pledge-option {
+    flex: 1;
+    background: #ffffff;
+    border: 2px solid #e0dbd2;
+    border-radius: 12px;
+    padding: 16px 10px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  .gc-pledge-option:hover {
+    border-color: #157275;
+  }
+
+  .gc-pledge-option.gc-selected {
+    border-color: #157275;
+    box-shadow: 0 0 0 1px #157275;
+  }
+
+  .gc-pledge-radio {
+    width: 18px;
+    height: 18px;
+    border: 2px solid #ccc;
+    border-radius: 50%;
+    margin: 0 auto 10px;
+    position: relative;
+    transition: border-color 0.2s;
+  }
+
+  .gc-pledge-option.gc-selected .gc-pledge-radio {
+    border-color: #157275;
+  }
+
+  .gc-pledge-option.gc-selected .gc-pledge-radio::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 8px;
+    height: 8px;
+    background: #157275;
+    border-radius: 50%;
+  }
+
+  .gc-pledge-amount {
+    font-size: 26px;
+    font-weight: 700;
+    color: #157275;
+    line-height: 1.2;
+  }
+
+  .gc-pledge-amount .gc-mo {
+    font-size: 13px;
+    font-weight: 400;
+    color: #666;
+  }
+
+  .gc-pledge-amount.gc-other-text {
+    font-size: 22px;
+    color: #352f44;
+  }
+
+  .gc-pledge-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #444;
+    margin-top: 4px;
+  }
+
+  .gc-pledge-btn-wrap {
+    margin-top: 14px;
+    display: none;
+  }
+
+  .gc-pledge-option.gc-selected .gc-pledge-btn-wrap {
+    display: block;
+  }
+
+  .gc-pledge-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #ffa25c;
+    color: #ffffff;
+    border: none;
+    border-radius: 100px;
+    padding: 12px 28px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s;
+    text-decoration: none;
+    font-family: inherit;
+  }
+
+  .gc-pledge-btn:hover {
+    background: #e8914f;
+  }
+
+  .gc-pledge-btn svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .gc-pledge-other-input {
+    display: none;
+    margin-top: 8px;
+  }
+
+  .gc-pledge-option.gc-other.gc-selected .gc-pledge-other-input {
+    display: block;
+  }
+
+  .gc-pledge-other-input input {
+    width: 100%;
+    padding: 6px 10px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 15px;
+    text-align: center;
+    outline: none;
+    font-family: inherit;
+    box-sizing: border-box;
+  }
+
+  .gc-pledge-other-input input:focus {
+    border-color: #157275;
+  }
+
+  /* ============================================================
+     LOGIN / SIGN UP ROW - below pledge selector
+     ============================================================ */
+  .gc-auth-row {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    margin-top: 1.25rem;
+    padding-top: 1rem;
+    border-top: 1px solid #e0dbd2;
+  }
+
+  .gc-auth-row span {
+    font-size: 0.9375rem;
+    color: #6b6b6b;
+  }
+
+  .gc-auth-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1.25rem;
+    border-radius: 100px;
+    font-family: 'Epilogue', sans-serif;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background 0.2s, color 0.2s, border-color 0.2s;
+  }
+
+  .gc-auth-btn svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .gc-auth-btn--login {
+    background: transparent;
+    color: #352f44;
+    border: 2px solid #352f44;
+  }
+
+  .gc-auth-btn--login:hover {
+    background: #352f44;
+    color: #ffffff;
+  }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .block-info-layout {
+      flex-direction: column;
+    }
+
+    .block-info-right {
+      min-width: unset;
+      width: 100%;
+    }
+
+    .block-headline-title {
+      font-size: 1.75rem;
+    }
+
+    .block-info-section {
+      padding: 1.5rem 1rem 0.5rem;
+    }
+
+    .share-btn {
+      width: 100%;
+      justify-content: center;
+    }
+
+    .gc-auth-row {
+      flex-direction: column;
+      gap: 0.75rem;
+      text-align: center;
+    }
+
+    .gc-auth-btn {
+      width: 100%;
+      justify-content: center;
+    }
+
+    .gc-pledge-options {
+      flex-wrap: wrap;
+    }
+
+    .gc-pledge-option {
+      flex: 1 1 calc(50% - 6px);
+    }
+  }
+</style>
+
+<div class="block-info-section">
+
+  <!-- Block name: full-width, above the two-column layout -->
+  <div class="block-headline-wrap">
+    <h1 class="block-headline-title">{Block Name (Full)}</h1>
+    <p class="block-headline-sub">Includes {Cleanup Area}</p>
+  </div>
+
+  <div class="block-info-layout">
+
+    <!-- Left: cleaner + pledge -->
+    <div class="block-info-left">
+
+      <div class="cleaner-row">
+        <img
+          class="cleaner-avatar"
+          data-glitter-field="Cleaner Photo"
+          src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+          alt="Cleaner photo"
+          onerror="this.style.display='none'"
+        />
+        <div class="cleaner-info">
+          <p class="cleaner-info-primary">
+            Cleaned by <strong>{Cleaner Name}</strong>
+            on <strong>{Last Cleanup (Softr)}</strong>
+          </p>
+          <p class="cleaner-info-secondary">
+            {Total Cleans} cleanings, With Glitter since {With Glitter Since}
+          </p>
+        </div>
+        <button class="share-btn" type="button" onclick="gcShareBlock()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
+              <polyline points="16 6 12 2 8 6"/>
+              <line x1="12" y1="2" x2="12" y2="15"/>
+            </svg>
+            <span id="gcShareBtnText">Share This Page</span>
+          </button>
+      </div>
+
+      <!-- PLEDGE SELECTOR -->
+      <div class="gc-pledge-options" id="gcPledgeOptions">
+
+        <div class="gc-pledge-option" data-amount="10">
+          <div class="gc-pledge-radio"></div>
+          <div class="gc-pledge-amount">$10<span class="gc-mo">/mo</span></div>
+          <div class="gc-pledge-label">Starter Pledge</div>
+          <div class="gc-pledge-btn-wrap">
+            <a href="#pledge" class="gc-pledge-btn gc-pledge-link">
+              Pledge
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                stroke-linejoin="round">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </a>
+          </div>
+        </div>
+
+        <div class="gc-pledge-option gc-selected" data-amount="20">
+          <div class="gc-pledge-radio"></div>
+          <div class="gc-pledge-amount">$20<span class="gc-mo">/mo</span></div>
+          <div class="gc-pledge-label">Most Popular</div>
+          <div class="gc-pledge-btn-wrap">
+            <a href="#pledge" class="gc-pledge-btn gc-pledge-link">
+              Pledge
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                stroke-linejoin="round">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </a>
+          </div>
+        </div>
+
+        <div class="gc-pledge-option" data-amount="50">
+          <div class="gc-pledge-radio"></div>
+          <div class="gc-pledge-amount">$50<span class="gc-mo">/mo</span></div>
+          <div class="gc-pledge-label">Block Champion</div>
+          <div class="gc-pledge-btn-wrap">
+            <a href="#pledge" class="gc-pledge-btn gc-pledge-link">
+              Pledge
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                stroke-linejoin="round">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </a>
+          </div>
+        </div>
+
+        <div class="gc-pledge-option gc-other" data-amount="other">
+          <div class="gc-pledge-radio"></div>
+          <div class="gc-pledge-amount gc-other-text">Other</div>
+          <div class="gc-pledge-label">Pay-What-You-Can</div>
+          <div class="gc-pledge-other-input">
+            <input type="number" placeholder="$" min="1" id="gcOtherAmt">
+          </div>
+          <div class="gc-pledge-btn-wrap">
+            <a href="#pledge" class="gc-pledge-btn gc-pledge-link">
+              Pledge
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                stroke-linejoin="round">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </a>
+          </div>
+        </div>
+
+      </div>
+
+
+
+      <!-- LOGIN / SIGN UP ROW -->
+      <div class="gc-auth-row">
+        <span>Already a member?</span>
+        <a href="https://app.shareglitter.com/login" class="gc-auth-btn gc-auth-btn--login">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+            <circle cx="12" cy="7" r="4" />
+          </svg>
+          Member Login
+        </a>
+      </div>
+
+    </div>
+
+    <!-- Right: map (dynamic from Block Map field, fallback to default) -->
+    <div class="block-info-right">
+      <img
+        id="gcBlockMap"
+        src="https://images.squarespace-cdn.com/content/v1/63c45f967196096ae1a4037b/c13c71fb-a379-4994-b66d-a2f2f220d9c2/WaveAndBroomRocky.png?format=1000w"
+        alt="Block map"
+        style="max-width: 400px; max-height: 400px;"
+        onerror="this.onerror=null;this.src='https://images.squarespace-cdn.com/content/v1/63c45f967196096ae1a4037b/c13c71fb-a379-4994-b66d-a2f2f220d9c2/WaveAndBroomRocky.png?format=1000w';"
+      />
+    </div>
+
+  </div>
+</div>
+
+
+<script>
+  (function() {
+  /* ---- PLEDGE SELECTOR ---- */
+  /* Updated: "Pledge" buttons now open the modal instead of navigating */
+ 
+  var options = document.querySelectorAll('#gcPledgeOptions .gc-pledge-option');
+ 
+  options.forEach(function(opt) {
+    opt.addEventListener('click', function() {
+      options.forEach(function(o) { o.classList.remove('gc-selected'); });
+      opt.classList.add('gc-selected');
+ 
+      if (opt.dataset.amount === 'other') {
+        var input = opt.querySelector('input');
+        if (input) setTimeout(function() { input.focus(); }, 100);
+      }
+    });
+  });
+ 
+  var otherInput = document.getElementById('gcOtherAmt');
+  if (otherInput) {
+    otherInput.addEventListener('click', function(e) { e.stopPropagation(); });
+  }
+ 
+  // Wire up all "Pledge >" buttons to open the modal
+  document.querySelectorAll('#gcPledgeOptions .gc-pledge-btn').forEach(function(btn) {
+    btn.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+ 
+      var card = btn.closest('.gc-pledge-option');
+      var amount = card ? card.dataset.amount : '';
+ 
+      if (amount === 'other') {
+        var input = document.getElementById('gcOtherAmt');
+        amount = input && input.value ? input.value : '';
+      }
+ 
+      if (window.openPledgeModal) {
+        window.openPledgeModal(amount ? { amount: amount } : {});
+      }
+    });
+  });
+ 
+  console.log('GC Pledge Selector: initialized (modal mode)');
+})();
+ 
+ 
+/* ---- SHARE BUTTON ---- */
+window.gcShareBlock = function() {
+  var record = window.glitterRecord || {};
+  var blockName = '';
+  var titleEl = document.querySelector('.block-headline-title');
+  if (titleEl) blockName = titleEl.textContent.trim();
+  if (!blockName || blockName.indexOf('{{') !== -1) blockName = 'our block';
+ 
+  var rawUrl = record['Block Page URL'] || '';
+  var shareUrl = rawUrl && rawUrl.indexOf('{{') === -1
+    ? (rawUrl.match(/^https?:\/\//) ? rawUrl : 'https://' + rawUrl)
+    : window.location.href;
+ 
+  var shareText = 'Check out ' + blockName + ' on Glitter! Neighbors chip in and a local cleaner keeps it clean every week.';
+ 
+  var isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  if (isMobile && navigator.share) {
+    navigator.share({
+      title: blockName + ' on Glitter',
+      text: shareText,
+      url: shareUrl,
+    }).catch(function() {});
+    return;
+  }
+ 
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(shareUrl).then(function() {
+      var el = document.getElementById('gcShareBtnText') || document.getElementById('gcShareBtnTextLI');
+      if (el) {
+        el.textContent = 'Link Copied!';
+        setTimeout(function() { el.textContent = 'Share This Page'; }, 2000);
+      }
+    }).catch(function() {
+      prompt('Copy this link:', shareUrl);
+    });
+  } else {
+    prompt('Copy this link:', shareUrl);
+  }
+};
+ 
+/* ---- DYNAMIC BLOCK MAP ---- */
+(function() {
+  'use strict';
+ 
+  var FALLBACK_SRC = 'https://images.squarespace-cdn.com/content/v1/63c45f967196096ae1a4037b/c13c71fb-a379-4994-b66d-a2f2f220d9c2/WaveAndBroomRocky.png?format=1000w';
+  var MAX_ATTEMPTS = 30;
+  var POLL_INTERVAL = 500;
+  var attempts = 0;
+ 
+  function trySetBlockMap() {
+    var record = window.glitterRecord;
+ 
+    if (!record) {
+      attempts++;
+      if (attempts <= MAX_ATTEMPTS) {
+        setTimeout(trySetBlockMap, POLL_INTERVAL);
+      } else {
+        console.log('GC Block Map: glitterRecord not found, keeping fallback');
+      }
+      return;
+    }
+ 
+    var mapUrl = extractMapUrl(record['Block Map']);
+ 
+    if (mapUrl) {
+      var img = document.getElementById('gcBlockMap');
+      if (img) {
+        img.src = mapUrl;
+        console.log('GC Block Map: loaded dynamic map');
+      }
+    } else {
+      console.log('GC Block Map: no map URL found, keeping fallback');
+    }
+  }
+ 
+  function extractMapUrl(raw) {
+    if (!raw) return null;
+    var str = String(raw).trim();
+    if (!str) return null;
+ 
+    // If it's already a URL (starts with http)
+    if (/^https?:\/\//.test(str)) return str;
+ 
+    // If Softr rendered it as HTML with an <img> tag, extract the src
+    var match = str.match(/src=["']([^"']+)["']/);
+    if (match) return match[1];
+ 
+    // If it's a comma-separated list of URLs, take the first
+    var parts = str.split(',');
+    for (var i = 0; i < parts.length; i++) {
+      var part = parts[i].trim();
+      if (/^https?:\/\//.test(part)) return part;
+    }
+ 
+    return null;
+  }
+ 
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() {
+      setTimeout(trySetBlockMap, 2000);
+    });
+  } else {
+    setTimeout(trySetBlockMap, 2000);
+  }
+})();
+</script>

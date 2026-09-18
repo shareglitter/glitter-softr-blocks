@@ -1,0 +1,347 @@
+<style>
+  .gc-funding-section {
+    background-color: #ECECE4;
+    padding: 16px 0 24px;
+    position: relative;
+    overflow: hidden;
+    width: 100vw;
+    margin-left: calc(-50vw + 50%);
+  }
+
+  .gc-funding-inner {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 0 40px;
+  }
+
+  .gc-funding-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #352f44;
+    margin: 0 0 24px 0;
+    line-height: 1.2;
+    font-family: 'Epilogue', sans-serif;
+  }
+
+  /* Progress bar */
+  .gc-funding-bar-area {
+    position: relative;
+    padding: 0 0 20px 0;
+  }
+
+  .gc-funding-labels-top {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    position: relative;
+  }
+
+  .gc-funding-label-top {
+    text-align: center;
+    font-size: 13px;
+    font-weight: 600;
+    color: #352f44;
+    width: 100px;
+    flex-shrink: 0;
+    font-family: 'Epilogue', sans-serif;
+  }
+
+  .gc-funding-label-top.gc-muted {
+    color: rgba(53, 47, 68, 0.4);
+  }
+
+  .gc-funding-track {
+    position: relative;
+    height: 12px;
+    background: rgba(53, 47, 68, 0.15);
+    border-radius: 6px;
+    margin: 0 50px;
+  }
+
+  .gc-funding-fill {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    background: #ffa25c;
+    border-radius: 6px;
+    transition: width 0.8s ease;
+  }
+
+  .gc-funding-milestones {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    transform: translateY(-50%);
+    display: flex;
+    justify-content: space-between;
+    pointer-events: none;
+  }
+
+  .gc-funding-milestone {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    margin: 0 -18px;
+    flex-shrink: 0;
+    z-index: 2;
+  }
+
+  .gc-funding-milestone:first-child { margin-left: -18px; }
+  .gc-funding-milestone:last-child { margin-right: -18px; }
+
+  .gc-funding-milestone.gc-reached { background: #ffa25c; }
+  .gc-funding-milestone.gc-locked { background: rgba(53, 47, 68, 0.15); }
+  .gc-funding-milestone.gc-first-funder { background: #ffa25c; }
+
+  .gc-funding-milestone svg { width: 18px; height: 18px; }
+
+  /* Current position marker */
+  .gc-funding-current {
+    position: absolute;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 3;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .gc-funding-sparkle {
+    width: 18px;
+    height: 18px;
+    color: #ffa25c;
+    filter: drop-shadow(0 0 3px rgba(255, 162, 92, 0.4));
+  }
+
+  .gc-funding-current-badge {
+    background: #352f44;
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 6px;
+    margin-top: 4px;
+    white-space: nowrap;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+    font-family: 'Epilogue', sans-serif;
+  }
+
+  /* Bottom labels */
+  .gc-funding-labels-bottom {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 16px;
+    position: relative;
+  }
+
+  .gc-funding-label-bottom {
+    text-align: center;
+    font-size: 13px;
+    font-weight: 600;
+    color: #352f44;
+    width: 100px;
+    flex-shrink: 0;
+    font-family: 'Epilogue', sans-serif;
+  }
+
+  .gc-funding-label-bottom.gc-muted {
+    color: rgba(53, 47, 68, 0.4);
+  }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .gc-funding-inner { padding: 0 20px; }
+    .gc-funding-title { font-size: 16px; margin-bottom: 20px; }
+
+    .gc-funding-label-top,
+    .gc-funding-label-bottom {
+      font-size: 11px;
+      width: 70px;
+    }
+
+    .gc-funding-milestone {
+      width: 28px;
+      height: 28px;
+      margin: 0 -14px;
+    }
+    .gc-funding-milestone:first-child { margin-left: -14px; }
+    .gc-funding-milestone:last-child { margin-right: -14px; }
+    .gc-funding-milestone svg { width: 14px; height: 14px; }
+
+    .gc-funding-track { margin: 0 35px; }
+  }
+</style>
+
+<div class="gc-funding-section">
+  <div class="gc-funding-inner">
+
+    <h2 class="gc-funding-title">Block Funding Progress</h2>
+
+    <div class="gc-funding-bar-area" id="gcFundingBar">
+
+      <div class="gc-funding-labels-top">
+        <div class="gc-funding-label-top" id="gcLabel0">1st Funder</div>
+        <div class="gc-funding-label-top gc-muted" id="gcLabel1">1x Cleaning</div>
+        <div class="gc-funding-label-top gc-muted" id="gcLabel2">2x Cleanings</div>
+        <div class="gc-funding-label-top gc-muted" id="gcLabel3">3x Cleanings</div>
+        <div class="gc-funding-label-top gc-muted" id="gcLabel4">4x Cleanings</div>
+      </div>
+
+      <div class="gc-funding-track">
+        <div class="gc-funding-fill" id="gcFundingFill" style="width: 0%;"></div>
+
+        <div class="gc-funding-milestones">
+          <div class="gc-funding-milestone gc-locked" id="gcMilestone0">
+            <svg viewBox="0 0 24 24" fill="none" stroke="rgba(53,47,68,0.4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="8" r="4"/><path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/>
+            </svg>
+          </div>
+          <div class="gc-funding-milestone gc-locked" id="gcMilestone1">
+            <svg viewBox="0 0 24 24" fill="none" stroke="rgba(53,47,68,0.4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+          </div>
+          <div class="gc-funding-milestone gc-locked" id="gcMilestone2">
+            <svg viewBox="0 0 24 24" fill="none" stroke="rgba(53,47,68,0.4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+          </div>
+          <div class="gc-funding-milestone gc-locked" id="gcMilestone3">
+            <svg viewBox="0 0 24 24" fill="none" stroke="rgba(53,47,68,0.4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+          </div>
+          <div class="gc-funding-milestone gc-locked" id="gcMilestone4">
+            <svg viewBox="0 0 24 24" fill="none" stroke="rgba(53,47,68,0.4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+          </div>
+        </div>
+
+        <div class="gc-funding-current" id="gcFundingCurrent" style="left: 0%; display: none;">
+          <svg class="gc-funding-sparkle" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 0 L14 10 L24 12 L14 14 L12 24 L10 14 L0 12 L10 10 Z"/>
+          </svg>
+          <div class="gc-funding-current-badge" id="gcFundingBadge">$0</div>
+        </div>
+      </div>
+
+      <div class="gc-funding-labels-bottom">
+        <div class="gc-funding-label-bottom">1st Funder!</div>
+        <div class="gc-funding-label-bottom gc-muted">$50</div>
+        <div class="gc-funding-label-bottom gc-muted">$100</div>
+        <div class="gc-funding-label-bottom gc-muted">$150</div>
+        <div class="gc-funding-label-bottom gc-muted">$200</div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  var FALLBACK_COST = 50;
+  var MAX_ATTEMPTS  = 30;
+  var POLL_INTERVAL = 500;
+  var attempts = 0;
+
+  var personSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></svg>';
+  var checkSvg  = '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+  var lockSvg   = '<svg viewBox="0 0 24 24" fill="none" stroke="rgba(53,47,68,0.4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>';
+
+  function updateFundingBar() {
+    var record = window.glitterRecord;
+
+    if (!record || !record['Total Pledges']) {
+      attempts++;
+      if (attempts <= MAX_ATTEMPTS) {
+        console.log('GC Funding: waiting for glitterRecord (attempt ' + attempts + '/' + MAX_ATTEMPTS + ')');
+        setTimeout(updateFundingBar, POLL_INTERVAL);
+      } else {
+        console.warn('GC Funding: gave up after ' + MAX_ATTEMPTS + ' attempts.');
+      }
+      return;
+    }
+
+    var totalPledges   = parseDollars(record['Total Pledges']);
+    var perWeekCost    = parseDollars(record['Per Week Cost']);
+
+    console.log('GC Funding: Total Pledges=$' + totalPledges + ', Per Week Cost=$' + perWeekCost);
+
+    if (totalPledges === null) {
+      console.warn('GC Funding: could not parse Total Pledges: ' + record['Total Pledges']);
+      return;
+    }
+
+    var cost = (perWeekCost !== null && perWeekCost > 0) ? perWeekCost : FALLBACK_COST;
+    var MILESTONES  = [0, cost * 1, cost * 2, cost * 3, cost * 4];
+    var MAX_FUNDING = MILESTONES[4];
+
+    var pct = Math.min((totalPledges / MAX_FUNDING) * 100, 100);
+
+    var fill = document.getElementById('gcFundingFill');
+    if (fill) fill.style.width = pct + '%';
+
+    var current = document.getElementById('gcFundingCurrent');
+    if (current) {
+      current.style.left = pct + '%';
+      current.style.display = 'flex';
+    }
+
+    var badge = document.getElementById('gcFundingBadge');
+    if (badge) badge.textContent = '$' + totalPledges;
+
+    for (var i = 0; i <= 4; i++) {
+      var ms       = document.getElementById('gcMilestone' + i);
+      var labelTop = document.getElementById('gcLabel' + i);
+      var reached  = totalPledges >= MILESTONES[i];
+
+      if (ms) {
+        ms.className = 'gc-funding-milestone ' +
+          (i === 0 && reached ? 'gc-first-funder' :
+           reached ? 'gc-reached' : 'gc-locked');
+        if (i === 0) {
+          ms.innerHTML = personSvg;
+          if (reached) ms.querySelector('svg').setAttribute('stroke', '#fff');
+        } else {
+          ms.innerHTML = reached ? checkSvg : lockSvg;
+        }
+      }
+
+      if (labelTop) {
+        labelTop.className = 'gc-funding-label-top' + (reached ? '' : ' gc-muted');
+      }
+    }
+
+    var bottomLabels = document.querySelectorAll('.gc-funding-labels-bottom .gc-funding-label-bottom');
+    bottomLabels.forEach(function(el, idx) {
+      el.className = 'gc-funding-label-bottom' + (totalPledges >= MILESTONES[idx] ? '' : ' gc-muted');
+      if (idx > 0) el.textContent = '$' + MILESTONES[idx];
+    });
+
+    console.log('GC Funding: rendered at ' + pct.toFixed(1) + '% (' + totalPledges + '/' + MAX_FUNDING + ')');
+  }
+
+  function parseDollars(str) {
+    if (!str) return null;
+    var num = parseFloat(String(str).replace(/[$,]/g, ''));
+    return isNaN(num) ? null : num;
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() {
+      setTimeout(updateFundingBar, 2000);
+    });
+  } else {
+    setTimeout(updateFundingBar, 2000);
+  }
+})();
+</script>

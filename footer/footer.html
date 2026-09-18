@@ -1,0 +1,1079 @@
+<script>
+(function() {
+  var spinner = document.getElementById('loading-spinner');
+  var maxWait = 5000;
+  var checkInterval = 200;
+  var contentAppeared = false;
+
+  function hideSpinner() {
+    if (spinner) spinner.style.display = 'none';
+  }
+
+  var safety = setTimeout(hideSpinner, maxWait);
+
+  function checkPage() {
+    var content = document.getElementById('main-content');
+    if (!content) return;
+    var text = content.textContent || '';
+    var hasTags = /\{[A-Za-z0-9_ ()\-]+\}/.test(text);
+
+    // Phase 1: wait until we see merge tags (blocks have rendered)
+    if (!contentAppeared && hasTags) {
+      contentAppeared = true;
+      return;
+    }
+
+    // Phase 2: once we saw tags, wait until they're all replaced
+    if (contentAppeared && !hasTags) {
+      setTimeout(function() {
+        hideSpinner();
+        clearTimeout(safety);
+      }, 300);
+      clearInterval(poll);
+    }
+  }
+
+  var poll = setInterval(checkPage, checkInterval);
+})();
+</script>
+
+<style>
+  /* Card background for each feature item */
+  #overview-member-active-before-trash-day .features-container > div {
+    background-color: #f5f4ef;
+    border-radius: 16px;
+    padding: 1.5rem 1rem;
+  }
+
+  /* Outer section background - match the page beige */
+  #overview-member-active-before-trash-day > section {
+    background-color: transparent;
+  }
+
+  /* Optional: add some spacing between cards */
+  #overview-member-active-before-trash-day .features-container {
+    gap: 1.25rem;
+  }
+  
+    #overview-member-active-before-trash-day .features-container > div {
+    flex-basis: calc(25% - 1rem) !important;
+    max-width: calc(25% - 1rem) !important;
+    box-sizing: border-box;
+  }
+  
+  #blockdata + section,
+.glitter-mid-section + section {
+  padding-top: 0 !important;
+}
+
+
+
+/* ================================================================
+   FOOTER - CSS Overrides
+   ================================================================
+
+   Target: #footer1
+
+   Background: #352F44 (plum)
+   Text: #ffffff
+   Links: #ffffff, hover opacity
+   Social icons: white
+
+   For Benefit Corporation badge and PROUD MEMBERS logos,
+   add as images later (possibly via Rich Text or custom code).
+   ================================================================ */
+
+
+/* ------------------------------------------------------------------
+   1. BACKGROUND - plum
+   ------------------------------------------------------------------ */
+#footer1,
+#footer1 > section,
+#footer1 footer,
+#footer1 [class*="footer"] {
+  background-color: #352F44 !important;
+}
+
+
+/* ------------------------------------------------------------------
+   2. ALL TEXT - white
+   ------------------------------------------------------------------ */
+#footer1,
+#footer1 * {
+  color: #ffffff !important;
+}
+
+
+/* ------------------------------------------------------------------
+   3. LINKS - white, subtle hover
+   ------------------------------------------------------------------ */
+#footer1 a {
+  color: #ffffff !important;
+  text-decoration: none !important;
+  transition: opacity 0.2s !important;
+}
+
+#footer1 a:hover {
+  opacity: 0.7 !important;
+}
+
+
+/* ------------------------------------------------------------------
+   4. COLUMN HEADERS - white, keep existing weight/case
+   ------------------------------------------------------------------ */
+#footer1 [class*="heading"],
+#footer1 [class*="title"],
+#footer1 h3, #footer1 h4, #footer1 h5 {
+  color: #ffffff !important;
+}
+
+
+/* ------------------------------------------------------------------
+   5. SOCIAL ICONS - white
+   ------------------------------------------------------------------ */
+#footer1 svg,
+#footer1 [class*="social"] svg {
+  color: #ffffff !important;
+  fill: #ffffff !important;
+}
+
+
+/* ------------------------------------------------------------------
+   6. DIVIDER LINE - subtle white
+   ------------------------------------------------------------------ */
+#footer1 hr,
+#footer1 [class*="divider"],
+#footer1 [class*="separator"] {
+  border-color: rgba(255, 255, 255, 0.2) !important;
+  background-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+
+/* ------------------------------------------------------------------
+   7. COPYRIGHT / BOTTOM TEXT - lighter white
+   ------------------------------------------------------------------ */
+#footer1 [class*="copyright"],
+#footer1 [class*="bottom"] {
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
+
+/* ------------------------------------------------------------------
+   8. LOGO - make it white (if it's an SVG or has a filter-able img)
+   ------------------------------------------------------------------ */
+#footer1 [class*="logo"] img,
+#footer1 [class*="brand"] img {
+  filter: brightness(0) invert(1) !important;
+}
+
+
+/*
+MISSING SECTION DATA - TABLE UPDATES
+*/
+
+
+/* ------------------------------------------------------------------
+   1. SECTION BACKGROUND - teal, full width
+   ------------------------------------------------------------------ */
+#table5 > section,
+#table6 > section,
+#table7 > section,
+#pledges-visitor-park > section,
+#pledges-visitor-compost > section {
+  background-color: #157275 !important;
+  padding-top: 0 !important;
+  padding-bottom: 56px !important;
+}
+
+
+/* ------------------------------------------------------------------
+   2. SECTION TITLE - restyle the heading
+   ------------------------------------------------------------------ */
+#table5 [class*="heading"],
+#table5 [class*="title"],
+#table6 [class*="heading"],
+#table6 [class*="title"],
+#table7 [class*="heading"],
+#table7 [class*="title"],
+#pledges-visitor-park [class*="heading"],
+#pledges-visitor-park [class*="title"],
+#pledges-visitor-compost [class*="heading"],
+#pledges-visitor-compost [class*="title"] {
+  color: #ffffff !important;
+  font-size: 22px !important;
+  font-weight: 700 !important;
+  text-transform: none !important;
+  letter-spacing: normal !important;
+  font-family: 'Epilogue', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+}
+
+
+/* ------------------------------------------------------------------
+   3. TABLE CONTAINER - white background, rounded corners
+   ------------------------------------------------------------------ */
+#table5 table,
+#table6 table,
+#table7 table,
+#pledges-visitor-park table,
+#pledges-visitor-compost table {
+  background: #ffffff !important;
+  border-radius: 12px !important;
+  overflow: hidden !important;
+  border: none !important;
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+}
+
+/* Also target Softr's table wrapper div if present */
+#table5 [class*="table-wrapper"],
+#table5 [class*="tableWrapper"],
+#table6 [class*="table-wrapper"],
+#table6 [class*="tableWrapper"],
+#table7 [class*="table-wrapper"],
+#table7 [class*="tableWrapper"],
+#pledges-visitor-park [class*="table-wrapper"],
+#pledges-visitor-park [class*="tableWrapper"],
+#pledges-visitor-compost [class*="table-wrapper"],
+#pledges-visitor-compost [class*="tableWrapper"] {
+  border-radius: 12px !important;
+  overflow: hidden !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+
+/* ------------------------------------------------------------------
+   4. TABLE HEADER - cream background
+   ------------------------------------------------------------------ */
+#table5 thead th,
+#table5 thead td,
+#table6 thead th,
+#table6 thead td,
+#table7 thead th,
+#table7 thead td,
+#pledges-visitor-park thead th,
+#pledges-visitor-park thead td,
+#pledges-visitor-compost thead th,
+#pledges-visitor-compost thead td {
+  background-color: #ECECE4 !important;
+  color: #157275 !important;
+  font-weight: 600 !important;
+  font-size: 14px !important;
+  padding: 14px 20px !important;
+  border-bottom: 1px solid #e0dbd2 !important;
+  text-transform: none !important;
+  letter-spacing: normal !important;
+}
+
+/* Also target Softr's header row wrapper */
+#table5 [class*="header-row"],
+#table5 [class*="headerRow"],
+#table5 [class*="head-cell"],
+#table6 [class*="header-row"],
+#table6 [class*="headerRow"],
+#table6 [class*="head-cell"],
+#table7 [class*="header-row"],
+#table7 [class*="headerRow"],
+#table7 [class*="head-cell"],
+#pledges-visitor-park [class*="header-row"],
+#pledges-visitor-park [class*="headerRow"],
+#pledges-visitor-park [class*="head-cell"],
+#pledges-visitor-compost [class*="header-row"],
+#pledges-visitor-compost [class*="headerRow"],
+#pledges-visitor-compost [class*="head-cell"] {
+  background-color: #ECECE4 !important;
+  color: #157275 !important;
+  font-weight: 600 !important;
+  font-size: 14px !important;
+  text-transform: none !important;
+}
+
+
+/* ------------------------------------------------------------------
+   5. TABLE BODY ROWS - clean dividers, hover effect
+   ------------------------------------------------------------------ */
+#table5 tbody td,
+#table6 tbody td,
+#table7 tbody td,
+#pledges-visitor-park tbody td,
+#pledges-visitor-compost tbody td {
+  padding: 16px 20px !important;
+  color: #352f44 !important;
+  border-bottom: 1px solid #ECECE4 !important;
+  font-size: 15px !important;
+  background: transparent !important;
+}
+
+#table5 tbody tr:last-child td,
+#table6 tbody tr:last-child td,
+#table7 tbody tr:last-child td,
+#pledges-visitor-park tbody tr:last-child td,
+#pledges-visitor-compost tbody tr:last-child td {
+  border-bottom: none !important;
+}
+
+#table5 tbody tr:hover td,
+#table6 tbody tr:hover td,
+#table7 tbody tr:hover td,
+#pledges-visitor-park tbody tr:hover td,
+#pledges-visitor-compost tbody tr:hover td {
+  background: #faf9f6 !important;
+}
+
+
+/* ------------------------------------------------------------------
+   6. REMOVE DEFAULT BORDERS AND SHADOWS
+   ------------------------------------------------------------------ */
+#table5 [class*="table"] *,
+#table6 [class*="table"] *,
+#table7 [class*="table"] *,
+#pledges-visitor-park [class*="table"] *,
+#pledges-visitor-compost [class*="table"] * {
+  border-color: #ECECE4 !important;
+  box-shadow: none !important;
+}
+
+
+/* ------------------------------------------------------------------
+   7. SUBTITLE / DESCRIPTION TEXT - white on teal
+   ------------------------------------------------------------------ */
+#table5 [class*="subtitle"],
+#table5 [class*="description"],
+#table6 [class*="subtitle"],
+#table6 [class*="description"],
+#table7 [class*="subtitle"],
+#table7 [class*="description"],
+#pledges-visitor-park [class*="subtitle"],
+#pledges-visitor-park [class*="description"],
+#pledges-visitor-compost [class*="subtitle"],
+#pledges-visitor-compost [class*="description"] {
+  color: rgba(255, 255, 255, 0.8) !important;
+}
+
+/* Links in description area */
+#table5 [class*="subtitle"] a,
+#table5 [class*="description"] a,
+#table6 [class*="subtitle"] a,
+#table6 [class*="description"] a,
+#table7 [class*="subtitle"] a,
+#table7 [class*="description"] a,
+#pledges-visitor-park [class*="subtitle"] a,
+#pledges-visitor-park [class*="description"] a,
+#pledges-visitor-compost [class*="subtitle"] a,
+#pledges-visitor-compost [class*="description"] a {
+  color: #ffffff !important;
+  text-decoration: underline !important;
+}
+
+
+/* ------------------------------------------------------------------
+   8. RESPONSIVE
+   ------------------------------------------------------------------ */
+@media (max-width: 768px) {
+  #table5 thead th,
+  #table5 thead td,
+  #table6 thead th,
+  #table6 thead td,
+  #table7 thead th,
+  #table7 thead td,
+  #pledges-visitor-park thead th,
+  #pledges-visitor-park thead td,
+  #pledges-visitor-compost thead th,
+  #pledges-visitor-compost thead td {
+    padding: 12px 12px !important;
+    font-size: 12px !important;
+  }
+
+  #table5 tbody td,
+  #table6 tbody td,
+  #table7 tbody td,
+  #pledges-visitor-park tbody td,
+  #pledges-visitor-compost tbody td {
+    padding: 12px 12px !important;
+    font-size: 13px !important;
+  }
+}
+
+/* ================================================================
+   SUPPORT OUR BLOCK - Footer CSS Overrides
+   ================================================================
+
+   Target: #block-support (column container) containing:
+     - #get-glitter-singage2
+     - #request-outreach-help
+     - #door-knock
+     - #bag-volunteer-2
+
+   Block type: "Call to action with a text and button"
+   The image is embedded as an <img> tag inside the Title field.
+
+   FOR EACH CARD'S TITLE FIELD, paste this pattern:
+   -------------------------------------------------------
+   <div style="text-align:center">
+     <img src="IMAGE_URL" style="width:140px; height:140px;
+       border-radius:50%; object-fit:contain; margin-bottom:12px;">
+   </div>
+   Card Title Here
+   -------------------------------------------------------
+
+   FOR EACH CARD'S SUBTITLE FIELD:
+   Just paste the plain description text, no HTML wrappers.
+
+   Set background colors in Softr Styles tab:
+   - #block-support container: #ede9df (beige)
+   - Each child block: #ffffff (white)
+   ================================================================ */
+
+
+/* ------------------------------------------------------------------
+   SHORTHAND: target all 4 CTA blocks + the container
+   ------------------------------------------------------------------ */
+#block-support,
+#get-glitter-singage2,
+#request-outreach-help,
+#door-knock,
+#bag-volunteer-2 {
+  /* let Softr Styles handle backgrounds - CSS below handles text/buttons */
+}
+
+
+/* ------------------------------------------------------------------
+   1. CONTAINER BACKGROUND - beige
+   ------------------------------------------------------------------ */
+#block-support > section,
+#block-support {
+  background-color: #ede9df !important;
+}
+
+#block-support > section {
+  padding-top: 56px !important;
+  padding-bottom: 56px !important;
+}
+
+
+/* ------------------------------------------------------------------
+   2. CONTAINER TITLE - "Support Our Block" - plum, normal case
+   ------------------------------------------------------------------ */
+#block-support > section > div > [class*="heading"],
+#block-support > section > div > h1,
+#block-support > section > div > h2 {
+  color: #352f44 !important;
+  text-transform: none !important;
+  letter-spacing: normal !important;
+  font-family: 'Epilogue', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+}
+
+/* Container subtitle */
+#block-support > section > div > [class*="subtitle"],
+#block-support > section > div > p {
+  color: #352f44 !important;
+}
+
+
+/* ------------------------------------------------------------------
+   3. INDIVIDUAL CTA CARD SECTIONS - white, rounded, centered
+   ------------------------------------------------------------------ */
+/* Force the column container to use equal-height columns */
+#block-support [class*="columns"],
+#block-support [class*="row"],
+#block-support > section > div > div {
+  display: flex !important;
+  align-items: stretch !important;
+}
+
+/* Each CTA block stretches to fill its column */
+#get-glitter-singage2,
+#request-outreach-help,
+#door-knock,
+#bag-volunteer-2 {
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100% !important;
+}
+
+#get-glitter-singage2 > section,
+#request-outreach-help > section,
+#door-knock > section,
+#bag-volunteer-2 > section {
+  border-radius: 16px !important;
+  padding: 24px 12px !important;
+  border: none !important;
+  box-shadow: none !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 !important;
+}
+
+/* The inner content wrapper */
+#get-glitter-singage2 > section > div,
+#request-outreach-help > section > div,
+#door-knock > section > div,
+#bag-volunteer-2 > section > div {
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 !important;
+}
+
+#get-glitter-singage2 > section > div > div,
+#request-outreach-help > section > div > div,
+#door-knock > section > div > div,
+#bag-volunteer-2 > section > div > div {
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 !important;
+}
+
+/* Push the button container (2nd child div) to the bottom */
+#get-glitter-singage2 > section > div > div > div:nth-child(2),
+#request-outreach-help > section > div > div > div:nth-child(2),
+#door-knock > section > div > div > div:nth-child(2),
+#bag-volunteer-2 > section > div > div > div:nth-child(2) {
+  margin-top: auto !important;
+}
+
+
+/* ------------------------------------------------------------------
+   4. CARD TITLES - plum, 18px, normal case
+   ------------------------------------------------------------------ */
+#get-glitter-singage2 [class*="heading"],
+#get-glitter-singage2 h1, #get-glitter-singage2 h2, #get-glitter-singage2 h3,
+#request-outreach-help [class*="heading"],
+#request-outreach-help h1, #request-outreach-help h2, #request-outreach-help h3,
+#door-knock [class*="heading"],
+#door-knock h1, #door-knock h2, #door-knock h3,
+#bag-volunteer-2 [class*="heading"],
+#bag-volunteer-2 h1, #bag-volunteer-2 h2, #bag-volunteer-2 h3 {
+  color: #352f44 !important;
+  font-size: 18px !important;
+  font-weight: 700 !important;
+  text-transform: none !important;
+  letter-spacing: normal !important;
+  margin-bottom: 12px !important;
+  line-height: 1.3 !important;
+}
+
+/* Also target the .heading-text class used by inline HTML */
+#get-glitter-singage2 .heading-text,
+#request-outreach-help .heading-text,
+#door-knock .heading-text,
+#bag-volunteer-2 .heading-text {
+  font-size: 18px !important;
+  font-weight: 700 !important;
+  line-height: 1.3 !important;
+  color: #352f44 !important;
+}
+
+
+/* ------------------------------------------------------------------
+   5. CARD BODY TEXT - plum, 14px
+   ------------------------------------------------------------------ */
+#get-glitter-singage2 [class*="subtitle"],
+#get-glitter-singage2 p,
+#request-outreach-help [class*="subtitle"],
+#request-outreach-help p,
+#door-knock [class*="subtitle"],
+#door-knock p,
+#bag-volunteer-2 [class*="subtitle"],
+#bag-volunteer-2 p {
+  color: #352f44 !important;
+  font-size: 14px !important;
+  line-height: 1.6 !important;
+  text-align: left !important;
+}
+
+
+/* ------------------------------------------------------------------
+   6. CARD IMAGES - consistent sizing for inline <img> in title
+   ------------------------------------------------------------------ */
+#get-glitter-singage2 img,
+#request-outreach-help img,
+#door-knock img,
+#bag-volunteer-2 img {
+  width: 140px !important;
+  height: 140px !important;
+  object-fit: contain !important;
+  border-radius: 0 !important;
+  margin: 0 auto 20px !important;
+  display: block !important;
+}
+
+
+/* ------------------------------------------------------------------
+   7. BUTTONS - outlined teal, pill shape
+   Targets the <a> tag inside the button wrapper div
+   ------------------------------------------------------------------ */
+#get-glitter-singage2 > section > div > div > div:nth-child(2) a,
+#request-outreach-help > section > div > div > div:nth-child(2) a,
+#door-knock > section > div > div > div:nth-child(2) a,
+#bag-volunteer-2 > section > div > div > div:nth-child(2) a {
+  background: transparent !important;
+  color: #157275 !important;
+  border: 2px solid #157275 !important;
+  border-radius: 100px !important;
+  padding: 12px 24px !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  text-decoration: none !important;
+  display: inline-block !important;
+  transition: background 0.2s, color 0.2s !important;
+  cursor: pointer !important;
+  text-transform: none !important;
+  letter-spacing: normal !important;
+}
+
+#get-glitter-singage2 > section > div > div > div:nth-child(2) a:hover,
+#request-outreach-help > section > div > div > div:nth-child(2) a:hover,
+#door-knock > section > div > div > div:nth-child(2) a:hover,
+#bag-volunteer-2 > section > div > div > div:nth-child(2) a:hover {
+  background: #157275 !important;
+  color: #ffffff !important;
+}
+
+/* Also style the span inside the button */
+#get-glitter-singage2 > section > div > div > div:nth-child(2) a span,
+#request-outreach-help > section > div > div > div:nth-child(2) a span,
+#door-knock > section > div > div > div:nth-child(2) a span,
+#bag-volunteer-2 > section > div > div > div:nth-child(2) a span {
+  color: inherit !important;
+}
+
+
+/* ------------------------------------------------------------------
+   8. RESPONSIVE
+   ------------------------------------------------------------------ */
+@media (max-width: 768px) {
+  #get-glitter-singage2 > section,
+  #request-outreach-help > section,
+  #door-knock > section,
+  #bag-volunteer-2 > section {
+    padding: 24px 20px !important;
+    margin-bottom: 16px !important;
+  }
+
+  #get-glitter-singage2 img,
+  #request-outreach-help img,
+  #door-knock img,
+  #bag-volunteer-2 img {
+    width: 100px !important;
+    height: 100px !important;
+  }
+}
+
+
+/* ================================================================
+   NEIGHBOR PLEDGES TABLE - Footer CSS Overrides
+   ================================================================
+
+   Add this to: Settings > Custom Code > Code inside footer
+   (wrap in <style> tags if not already in a style block)
+
+   BEFORE ADDING THIS CSS, configure the table blocks in Softr:
+   1. Reorder columns to: Neighbor, Joined, Pledge, Share
+   2. Rename "Since" header to "Joined"
+   3. Hide the Compost column (if present)
+   4. Move Share to last position
+
+   These overrides target ALL pledge table variants:
+   - #table5 (logged in, no compost)
+   - #table6 (not logged in, no compost)
+   - #table7 (logged in, compost)
+   - #pledges-visitor-park (park pages)
+   - #pledges-visitor-compost (not logged in, compost)
+
+   If you add more table block IDs, add them to each selector group.
+   ================================================================ */
+
+
+/* ------------------------------------------------------------------
+   1. SECTION BACKGROUND - teal, full width
+   ------------------------------------------------------------------ */
+#table5 > section,
+#table6 > section,
+#table7 > section,
+#pledges-visitor-park > section,
+#pledges-visitor-compost > section {
+  background-color: #157275 !important;
+  padding-top: 0 !important;
+  padding-bottom: 56px !important;
+}
+
+
+/* ------------------------------------------------------------------
+   2. SECTION TITLE - restyle the heading
+   ------------------------------------------------------------------ */
+#table5 [class*="heading"],
+#table5 [class*="title"],
+#table6 [class*="heading"],
+#table6 [class*="title"],
+#table7 [class*="heading"],
+#table7 [class*="title"],
+#pledges-visitor-park [class*="heading"],
+#pledges-visitor-park [class*="title"],
+#pledges-visitor-compost [class*="heading"],
+#pledges-visitor-compost [class*="title"] {
+  color: #ffffff !important;
+  font-size: 22px !important;
+  font-weight: 700 !important;
+  text-transform: none !important;
+  letter-spacing: normal !important;
+  font-family: 'Epilogue', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+}
+
+
+/* ------------------------------------------------------------------
+   3. TABLE CONTAINER - white background, rounded corners
+   ------------------------------------------------------------------ */
+#table5 table,
+#table6 table,
+#table7 table,
+#pledges-visitor-park table,
+#pledges-visitor-compost table {
+  background: #ffffff !important;
+  border-radius: 12px !important;
+  overflow: hidden !important;
+  border: none !important;
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+}
+
+/* Also target Softr's table wrapper div if present */
+#table5 [class*="table-wrapper"],
+#table5 [class*="tableWrapper"],
+#table6 [class*="table-wrapper"],
+#table6 [class*="tableWrapper"],
+#table7 [class*="table-wrapper"],
+#table7 [class*="tableWrapper"],
+#pledges-visitor-park [class*="table-wrapper"],
+#pledges-visitor-park [class*="tableWrapper"],
+#pledges-visitor-compost [class*="table-wrapper"],
+#pledges-visitor-compost [class*="tableWrapper"] {
+  border-radius: 12px !important;
+  overflow: hidden !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+
+/* ------------------------------------------------------------------
+   4. TABLE HEADER - cream background
+   ------------------------------------------------------------------ */
+#table5 thead th,
+#table5 thead td,
+#table6 thead th,
+#table6 thead td,
+#table7 thead th,
+#table7 thead td,
+#pledges-visitor-park thead th,
+#pledges-visitor-park thead td,
+#pledges-visitor-compost thead th,
+#pledges-visitor-compost thead td {
+  background-color: #ECECE4 !important;
+  color: #157275 !important;
+  font-weight: 600 !important;
+  font-size: 14px !important;
+  padding: 14px 20px !important;
+  border-bottom: 1px solid #e0dbd2 !important;
+  text-transform: none !important;
+  letter-spacing: normal !important;
+}
+
+/* Also target Softr's header row wrapper */
+#table5 [class*="header-row"],
+#table5 [class*="headerRow"],
+#table5 [class*="head-cell"],
+#table6 [class*="header-row"],
+#table6 [class*="headerRow"],
+#table6 [class*="head-cell"],
+#table7 [class*="header-row"],
+#table7 [class*="headerRow"],
+#table7 [class*="head-cell"],
+#pledges-visitor-park [class*="header-row"],
+#pledges-visitor-park [class*="headerRow"],
+#pledges-visitor-park [class*="head-cell"],
+#pledges-visitor-compost [class*="header-row"],
+#pledges-visitor-compost [class*="headerRow"],
+#pledges-visitor-compost [class*="head-cell"] {
+  background-color: #ECECE4 !important;
+  color: #157275 !important;
+  font-weight: 600 !important;
+  font-size: 14px !important;
+  text-transform: none !important;
+}
+
+
+/* ------------------------------------------------------------------
+   5. TABLE BODY ROWS - clean dividers, hover effect
+   ------------------------------------------------------------------ */
+#table5 tbody td,
+#table6 tbody td,
+#table7 tbody td,
+#pledges-visitor-park tbody td,
+#pledges-visitor-compost tbody td {
+  padding: 16px 20px !important;
+  color: #352f44 !important;
+  border-bottom: 1px solid #ECECE4 !important;
+  font-size: 15px !important;
+  background: transparent !important;
+}
+
+#table5 tbody tr:last-child td,
+#table6 tbody tr:last-child td,
+#table7 tbody tr:last-child td,
+#pledges-visitor-park tbody tr:last-child td,
+#pledges-visitor-compost tbody tr:last-child td {
+  border-bottom: none !important;
+}
+
+#table5 tbody tr:hover td,
+#table6 tbody tr:hover td,
+#table7 tbody tr:hover td,
+#pledges-visitor-park tbody tr:hover td,
+#pledges-visitor-compost tbody tr:hover td {
+  background: #faf9f6 !important;
+}
+
+
+/* ------------------------------------------------------------------
+   6. REMOVE DEFAULT BORDERS AND SHADOWS
+   ------------------------------------------------------------------ */
+#table5 [class*="table"] *,
+#table6 [class*="table"] *,
+#table7 [class*="table"] *,
+#pledges-visitor-park [class*="table"] *,
+#pledges-visitor-compost [class*="table"] * {
+  border-color: #ECECE4 !important;
+  box-shadow: none !important;
+}
+
+
+/* ------------------------------------------------------------------
+   7. SUBTITLE / DESCRIPTION TEXT - white on teal
+   ------------------------------------------------------------------ */
+#table5 [class*="subtitle"],
+#table5 [class*="description"],
+#table6 [class*="subtitle"],
+#table6 [class*="description"],
+#table7 [class*="subtitle"],
+#table7 [class*="description"],
+#pledges-visitor-park [class*="subtitle"],
+#pledges-visitor-park [class*="description"],
+#pledges-visitor-compost [class*="subtitle"],
+#pledges-visitor-compost [class*="description"] {
+  color: rgba(255, 255, 255, 0.8) !important;
+}
+
+/* Links in description area */
+#table5 [class*="subtitle"] a,
+#table5 [class*="description"] a,
+#table6 [class*="subtitle"] a,
+#table6 [class*="description"] a,
+#table7 [class*="subtitle"] a,
+#table7 [class*="description"] a,
+#pledges-visitor-park [class*="subtitle"] a,
+#pledges-visitor-park [class*="description"] a,
+#pledges-visitor-compost [class*="subtitle"] a,
+#pledges-visitor-compost [class*="description"] a {
+  color: #ffffff !important;
+  text-decoration: underline !important;
+}
+
+
+/* ------------------------------------------------------------------
+   8. CENTER COLUMNS - Joined, Pledge, Share, Compost Add-On
+      (all columns except the first "Neighbor" column)
+      Softr uses AG Grid — target ag-header-cell and ag-cell
+   ------------------------------------------------------------------ */
+
+/* Center header cells (skip first column) */
+#table5 .ag-header-row > .ag-header-cell:nth-child(n+2),
+#table6 .ag-header-row > .ag-header-cell:nth-child(n+2),
+#table7 .ag-header-row > .ag-header-cell:nth-child(n+2),
+#pledges-visitor-park .ag-header-row > .ag-header-cell:nth-child(n+2),
+#pledges-visitor-compost .ag-header-row > .ag-header-cell:nth-child(n+2) {
+  text-align: center !important;
+}
+
+#table5 .ag-header-row > .ag-header-cell:nth-child(n+2) *,
+#table6 .ag-header-row > .ag-header-cell:nth-child(n+2) *,
+#table7 .ag-header-row > .ag-header-cell:nth-child(n+2) *,
+#pledges-visitor-park .ag-header-row > .ag-header-cell:nth-child(n+2) *,
+#pledges-visitor-compost .ag-header-row > .ag-header-cell:nth-child(n+2) * {
+  text-align: center !important;
+  justify-content: center !important;
+}
+
+/* Center body cells (skip first column) */
+#table5 .ag-row > .ag-cell:nth-child(n+2),
+#table5 .ag-row > .ag-cell:nth-child(n+2) div,
+#table5 .ag-row > .ag-cell:nth-child(n+2) p,
+#table5 .ag-row > .ag-cell:nth-child(n+2) span,
+#table6 .ag-row > .ag-cell:nth-child(n+2),
+#table6 .ag-row > .ag-cell:nth-child(n+2) div,
+#table6 .ag-row > .ag-cell:nth-child(n+2) p,
+#table6 .ag-row > .ag-cell:nth-child(n+2) span,
+#table7 .ag-row > .ag-cell:nth-child(n+2),
+#table7 .ag-row > .ag-cell:nth-child(n+2) div,
+#table7 .ag-row > .ag-cell:nth-child(n+2) p,
+#table7 .ag-row > .ag-cell:nth-child(n+2) span,
+#pledges-visitor-park .ag-row > .ag-cell:nth-child(n+2),
+#pledges-visitor-park .ag-row > .ag-cell:nth-child(n+2) div,
+#pledges-visitor-park .ag-row > .ag-cell:nth-child(n+2) p,
+#pledges-visitor-park .ag-row > .ag-cell:nth-child(n+2) span,
+#pledges-visitor-compost .ag-row > .ag-cell:nth-child(n+2),
+#pledges-visitor-compost .ag-row > .ag-cell:nth-child(n+2) div,
+#pledges-visitor-compost .ag-row > .ag-cell:nth-child(n+2) p,
+#pledges-visitor-compost .ag-row > .ag-cell:nth-child(n+2) span {
+  text-align: center !important;
+  justify-content: center !important;
+}
+
+/* Fallback: target ALL ag-cell p/div by ID pattern for dynamic cell IDs */
+#table5 [id^="cell-"] > div > p,
+#table6 [id^="cell-"] > div > p,
+#table7 [id^="cell-"] > div > p,
+#pledges-visitor-park [id^="cell-"] > div > p,
+#pledges-visitor-compost [id^="cell-"] > div > p {
+  text-align: center !important;
+}
+
+/* Keep the first column (Neighbor) left-aligned */
+#table5 .ag-row > .ag-cell:first-child,
+#table5 .ag-row > .ag-cell:first-child div,
+#table5 .ag-row > .ag-cell:first-child p,
+#table6 .ag-row > .ag-cell:first-child,
+#table6 .ag-row > .ag-cell:first-child div,
+#table6 .ag-row > .ag-cell:first-child p,
+#table7 .ag-row > .ag-cell:first-child,
+#table7 .ag-row > .ag-cell:first-child div,
+#table7 .ag-row > .ag-cell:first-child p,
+#pledges-visitor-park .ag-row > .ag-cell:first-child,
+#pledges-visitor-park .ag-row > .ag-cell:first-child div,
+#pledges-visitor-park .ag-row > .ag-cell:first-child p,
+#pledges-visitor-compost .ag-row > .ag-cell:first-child,
+#pledges-visitor-compost .ag-row > .ag-cell:first-child div,
+#pledges-visitor-compost .ag-row > .ag-cell:first-child p {
+  text-align: left !important;
+  justify-content: flex-start !important;
+}
+
+
+/* ------------------------------------------------------------------
+   9. RESPONSIVE
+   ------------------------------------------------------------------ */
+@media (max-width: 768px) {
+  #table5 thead th,
+  #table5 thead td,
+  #table6 thead th,
+  #table6 thead td,
+  #table7 thead th,
+  #table7 thead td,
+  #pledges-visitor-park thead th,
+  #pledges-visitor-park thead td,
+  #pledges-visitor-compost thead th,
+  #pledges-visitor-compost thead td {
+    padding: 12px 12px !important;
+    font-size: 12px !important;
+  }
+
+  #table5 tbody td,
+  #table6 tbody td,
+  #table7 tbody td,
+  #pledges-visitor-park tbody td,
+  #pledges-visitor-compost tbody td {
+    padding: 12px 12px !important;
+    font-size: 13px !important;
+  }
+}
+
+/* ============================================================
+   QUICK FIXES — July 30, 2026
+   Add to footer custom code (or wherever site-wide CSS lives)
+   ============================================================ */
+
+/* ------------------------------------------------------------
+   1. SUPPORT OUR BLOCK — Center-align header & subtitle
+   ------------------------------------------------------------ */
+#block-support > div > section > div > div > div.e8dc329_1mj46ag0.softr-block-heading > h2 > div {
+  text-align: center !important;
+}
+
+#block-support > div > section > div > div > div.e8dc329_1mj46ag0.softr-block-heading > p {
+  text-align: center !important;
+}
+
+/* ------------------------------------------------------------
+   2. SUPPORT OUR BLOCK CARDS — Wider cards
+   Increase max-width of the card container and let cards
+   stretch more within the grid
+   ------------------------------------------------------------ */
+#block-support > div > section > div > div {
+  max-width: 1200px !important;
+}
+
+#block-support .MuiGrid-root.MuiGrid-item {
+  min-width: 240px !important;
+}
+
+/* Give card content more breathing room */
+/* Support card inner padding — was 5px, widened for readability */
+#block-support .softr-cta-hero-content > section > div {
+  padding: 10px !important;
+}
+
+/* Unconstrain the subtitle/description text inside cards */
+#get-glitter-singage2 > section > div > div > div:nth-child(1) > p,
+#request-outreach-help > section > div > div > div:nth-child(1) > p,
+#door-knock > section > div > div > div:nth-child(1) > p,
+#bag-volunteer-2 > section > div > div > div:nth-child(1) > p {
+  max-width: 100% !important;
+  width: 100% !important;
+  padding: 0 !important;
+}
+
+/* Reduce inner padding on support card containers */
+#get-glitter-singage2 > section > div,
+#request-outreach-help > section > div,
+#door-knock > section > div,
+#bag-volunteer-2 > section > div {
+  padding: 5px !important;
+}
+
+/* ------------------------------------------------------------
+   3. STAT CARDS — Narrower container + mobile 2x2 grid
+   ------------------------------------------------------------ */
+
+/* Keep desktop full-width, just fix mobile */
+
+/* Tablet: 2x2 grid */
+@media (max-width: 768px) and (min-width: 481px) {
+  #overview-member-active-before-trash-day .features-container {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    justify-content: center !important;
+    gap: 12px !important;
+  }
+
+  #overview-member-active-before-trash-day .features-container > div {
+    flex: 0 0 46% !important;
+    max-width: 46% !important;
+  }
+}
+
+/* Narrow mobile: single column so text + badges fit */
+@media (max-width: 480px) {
+  #overview-member-active-before-trash-day .features-container {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 10px !important;
+  }
+
+  #overview-member-active-before-trash-day .features-container > div {
+    flex: 0 0 auto !important;
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+}
+
+</style>

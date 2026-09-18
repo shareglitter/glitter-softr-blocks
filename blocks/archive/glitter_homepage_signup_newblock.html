@@ -1,0 +1,974 @@
+<!-- ============================================================
+     NEW BLOCK SIGNUP FORM - Softr Custom Code Block
+     ============================================================
+
+     Variant of glitter_homepage_signup.html with NO block search.
+     For landing pages where we already know the visitor's block
+     isn't in the system yet — "New block (we'll set it up for you)"
+     is assumed for every submission.
+
+     Embedded in Squarespace via iframe.
+
+     STEPS:
+     1. Make a Pledge ($10/$20/$50/Other + Donate My Savings)
+     2. Contact Info (name, email, phone, address, opt-in) + Submit
+
+     CONFIG:
+     - WEBHOOK_URL: Zapier webhook endpoint (same as pledge modal)
+     - REDIRECT_URL: Post-submit redirect
+     ============================================================ -->
+
+<style>
+  /* ============================================================
+     BASE / RESET
+     ============================================================ */
+  .gc-signup {
+    font-family: 'Epilogue', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 24px 48px 40px;
+    box-sizing: border-box;
+    color: #352f44;
+    background: #ede9df;
+    border-radius: 20px;
+  }
+
+  .gc-signup *, .gc-signup *::before, .gc-signup *::after {
+    box-sizing: border-box;
+  }
+
+  /* ============================================================
+     STEP INDICATOR
+     ============================================================ */
+  .gc-step-indicator {
+    font-size: 13px;
+    font-weight: 600;
+    color: #157275;
+    margin-bottom: 4px;
+  }
+
+  .gc-step-title {
+    font-size: 22px;
+    font-weight: 800;
+    color: #352f44;
+    margin: 0 0 8px;
+  }
+
+  .gc-step-desc {
+    font-size: 15px;
+    color: #6b6b6b;
+    margin: 0 0 14px;
+    line-height: 1.5;
+  }
+
+  .gc-step-desc a {
+    color: #157275;
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  .gc-step-desc a:hover {
+    text-decoration: underline;
+  }
+
+  /* ============================================================
+     NEW BLOCK BANNER (replaces the old block-search step)
+     ============================================================ */
+  .gc-newblock-banner {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #d3f5ec;
+    border: 2px solid #b0e8d9;
+    border-radius: 12px;
+    padding: 14px 18px;
+    margin-bottom: 20px;
+  }
+
+  .gc-newblock-icon {
+    width: 26px;
+    height: 26px;
+    background: #157275;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .gc-newblock-icon svg {
+    width: 15px;
+    height: 15px;
+  }
+
+  .gc-newblock-text strong {
+    display: block;
+    font-size: 15px;
+    font-weight: 700;
+    color: #157275;
+    line-height: 1.3;
+  }
+
+  .gc-newblock-text span {
+    font-size: 13px;
+    color: #157275;
+    opacity: 0.85;
+    line-height: 1.4;
+  }
+
+  /* ============================================================
+     STEP 1 - PLEDGE CARDS (matches pledge modal exactly)
+     ============================================================ */
+  .gc-pledge-options {
+    display: flex;
+    gap: 12px;
+  }
+
+  .gc-pledge-option {
+    flex: 1;
+    background: #ffffff;
+    border: 2px solid #e0dbd2;
+    border-radius: 12px;
+    padding: 16px 10px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  .gc-pledge-option:hover {
+    border-color: #157275;
+  }
+
+  .gc-pledge-option.gc-selected {
+    border-color: #157275;
+    box-shadow: 0 0 0 1px #157275;
+  }
+
+  .gc-pledge-option .gc-radio {
+    width: 18px;
+    height: 18px;
+    border: 2px solid #ccc;
+    border-radius: 50%;
+    margin: 0 auto 10px;
+    position: relative;
+    transition: border-color 0.2s;
+  }
+
+  .gc-pledge-option.gc-selected .gc-radio {
+    border-color: #157275;
+  }
+
+  .gc-pledge-option.gc-selected .gc-radio::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 8px;
+    height: 8px;
+    background: #157275;
+    border-radius: 50%;
+  }
+
+  .gc-pledge-amount {
+    font-size: 26px;
+    font-weight: 700;
+    color: #157275;
+    line-height: 1.2;
+  }
+
+  .gc-pledge-amount .gc-mo {
+    font-size: 13px;
+    font-weight: 400;
+    color: #666;
+  }
+
+  .gc-pledge-amount.gc-other-text {
+    font-size: 22px;
+    color: #352f44;
+  }
+
+  .gc-pledge-label {
+    font-size: 11px;
+    color: #888;
+    margin-top: 4px;
+  }
+
+  .gc-other-input {
+    display: none;
+    margin-top: 8px;
+  }
+
+  .gc-pledge-option.gc-other.gc-selected .gc-other-input {
+    display: block;
+  }
+
+  .gc-other-input input {
+    width: 100%;
+    padding: 6px 10px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 15px;
+    text-align: center;
+    outline: none;
+    font-family: inherit;
+    box-sizing: border-box;
+  }
+
+  .gc-other-input input:focus {
+    border-color: #157275;
+  }
+
+  /* Donate My Savings toggle */
+  .gc-donate-row {
+    margin-top: 16px;
+    background: #d3f5ec;
+    border: 1px solid #b0e8d9;
+    border-radius: 12px;
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s;
+  }
+
+  .gc-donate-row:not(.gc-on) {
+    background: #f0ede6;
+    border-color: #e0dbd2;
+  }
+
+  .gc-donate-content {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .gc-donate-content strong {
+    display: block;
+    font-size: 15px;
+    color: #352f44;
+    margin-bottom: 2px;
+  }
+
+  .gc-donate-content span {
+    font-size: 13px;
+    color: #6b6b6b;
+    line-height: 1.4;
+  }
+
+  .gc-donate-content a {
+    color: #157275;
+    text-decoration: underline;
+  }
+
+  /* Pill toggle switch */
+  .gc-toggle {
+    flex-shrink: 0;
+  }
+
+  .gc-toggle-track {
+    width: 48px;
+    height: 28px;
+    background: #ccc;
+    border-radius: 100px;
+    position: relative;
+    transition: background 0.2s;
+  }
+
+  .gc-donate-row.gc-on .gc-toggle-track {
+    background: #157275;
+  }
+
+  .gc-toggle-thumb {
+    width: 22px;
+    height: 22px;
+    background: #ffffff;
+    border-radius: 50%;
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    transition: transform 0.2s;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  }
+
+  .gc-donate-row.gc-on .gc-toggle-thumb {
+    transform: translateX(20px);
+  }
+
+  /* ============================================================
+     STEP 2 - CONTACT FORM (matches pledge modal exactly)
+     ============================================================ */
+  .gc-form-row {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .gc-form-group {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .gc-form-label {
+    display: block;
+    font-size: 14px;
+    font-weight: 700;
+    color: #352f44;
+    margin-bottom: 6px;
+  }
+
+  .gc-form-label .gc-hint {
+    font-weight: 400;
+    color: #888;
+    margin-left: 8px;
+  }
+
+  .gc-form-input {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1.5px solid #e0dbd2;
+    border-radius: 10px;
+    font-size: 15px;
+    font-family: inherit;
+    outline: none;
+    box-sizing: border-box;
+    background: #ffffff;
+    transition: border-color 0.15s;
+  }
+
+  .gc-form-input:focus {
+    border-color: #157275;
+  }
+
+  .gc-form-input.gc-error {
+    border-color: #e74c3c;
+  }
+
+  .gc-form-input-icon {
+    position: relative;
+  }
+
+  .gc-form-input-icon .gc-icon {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #aaa;
+    width: 18px;
+    height: 18px;
+  }
+
+  .gc-form-input-icon .gc-form-input {
+    padding-left: 40px;
+  }
+
+  /* SMS Opt-in */
+  .gc-optin-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-top: 20px;
+    cursor: pointer;
+  }
+
+  .gc-optin-checkbox {
+    width: 20px;
+    height: 20px;
+    border: 2px solid #ccc;
+    border-radius: 4px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 2px;
+    transition: background 0.15s, border-color 0.15s;
+  }
+
+  .gc-optin-row.gc-checked .gc-optin-checkbox {
+    background: #157275;
+    border-color: #157275;
+  }
+
+  .gc-optin-checkbox svg {
+    display: none;
+    width: 12px;
+    height: 12px;
+  }
+
+  .gc-optin-row.gc-checked .gc-optin-checkbox svg {
+    display: block;
+  }
+
+  .gc-optin-text {
+    font-size: 13px;
+    color: #6b6b6b;
+    line-height: 1.4;
+  }
+
+  /* ============================================================
+     FOOTER - Back + Next / Submit
+     ============================================================ */
+  .gc-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 24px;
+  }
+
+  .gc-back-btn {
+    background: none;
+    border: none;
+    color: #6b6b6b;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    padding: 8px 0;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .gc-back-btn:hover {
+    color: #352f44;
+  }
+
+  .gc-next-btn {
+    background: #ffa25c;
+    color: #ffffff;
+    border: none;
+    border-radius: 100px;
+    padding: 14px 32px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: background 0.2s;
+  }
+
+  .gc-next-btn:hover {
+    background: #e8914f;
+  }
+
+  .gc-next-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .gc-next-btn svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .gc-next-btn.gc-submitting {
+    pointer-events: none;
+    opacity: 0.7;
+  }
+
+  /* Error message */
+  .gc-error-msg {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 10px;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    color: #dc2626;
+    font-size: 14px;
+    display: none;
+  }
+
+  /* Success message */
+  .gc-success-msg {
+    text-align: center;
+    padding: 40px 20px;
+  }
+
+  .gc-success-msg h3 {
+    font-size: 24px;
+    font-weight: 800;
+    color: #157275;
+    margin: 0 0 12px;
+  }
+
+  .gc-success-msg p {
+    font-size: 15px;
+    color: #6b6b6b;
+    line-height: 1.5;
+    margin: 0 0 24px;
+  }
+
+  .gc-success-close {
+    background: #157275;
+    color: #ffffff;
+    border: none;
+    border-radius: 100px;
+    padding: 14px 32px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+  }
+
+  .gc-success-close:hover {
+    background: #0e5c5e;
+  }
+
+  /* ============================================================
+     RESPONSIVE
+     ============================================================ */
+  @media (max-width: 600px) {
+    .gc-signup {
+      padding: 28px 20px;
+    }
+    .gc-pledge-options {
+      flex-wrap: wrap;
+    }
+    .gc-pledge-option {
+      flex: 1 1 calc(50% - 6px);
+    }
+    .gc-form-row {
+      flex-direction: column;
+      gap: 16px;
+    }
+    .gc-footer {
+      flex-direction: column-reverse;
+      gap: 12px;
+    }
+    .gc-next-btn {
+      width: 100%;
+      justify-content: center;
+    }
+  }
+</style>
+
+<!-- ============================================================
+     FORM HTML
+     ============================================================ -->
+<div class="gc-signup" id="gcSignup">
+
+  <!-- ERROR MESSAGE -->
+  <div class="gc-error-msg" id="gcError"></div>
+
+  <!-- STEP 1: MAKE A PLEDGE -->
+  <div class="gc-step" id="gcStep1">
+
+    <!-- New block banner (always shown, no search) -->
+    <div class="gc-newblock-banner">
+      <div class="gc-newblock-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+      </div>
+      <div class="gc-newblock-text">
+        <strong>New block &mdash; we'll set it up for you</strong>
+        <span>Just tell us your pledge and contact info. We'll take it from there.</span>
+      </div>
+    </div>
+
+    <div class="gc-step-indicator">Step 1 of 2</div>
+    <h3 class="gc-step-title">Make a pledge</h3>
+    <p class="gc-step-desc">
+      Choose an amount that fits your monthly budget. This is the most you'll ever pay.
+      As more neighbors join, you often pay even less!
+      <a href="https://www.shareglitter.com/how-it-works" target="_blank">Learn more</a>
+    </p>
+
+    <div class="gc-pledge-options" id="gcPledgeOptions">
+      <div class="gc-pledge-option gc-selected" data-amount="10">
+        <div class="gc-radio"></div>
+        <div class="gc-pledge-amount">$10<span class="gc-mo">/mo</span></div>
+        <div class="gc-pledge-label">Starter Pledge</div>
+      </div>
+      <div class="gc-pledge-option" data-amount="20">
+        <div class="gc-radio"></div>
+        <div class="gc-pledge-amount">$20<span class="gc-mo">/mo</span></div>
+        <div class="gc-pledge-label">Most Popular</div>
+      </div>
+      <div class="gc-pledge-option" data-amount="50">
+        <div class="gc-radio"></div>
+        <div class="gc-pledge-amount">$50<span class="gc-mo">/mo</span></div>
+        <div class="gc-pledge-label">Block Champion</div>
+      </div>
+      <div class="gc-pledge-option gc-other" data-amount="other">
+        <div class="gc-radio"></div>
+        <div class="gc-pledge-amount gc-other-text">Other</div>
+        <div class="gc-pledge-label">Pay-What-You-Can</div>
+        <div class="gc-other-input">
+          <input type="number" placeholder="$" min="1" id="gcOtherAmt"
+                 onclick="event.stopPropagation()">
+        </div>
+      </div>
+    </div>
+
+    <!-- Donate My Savings toggle -->
+    <div class="gc-donate-row gc-on" id="gcDonateRow">
+      <div class="gc-donate-content">
+        <strong id="gcDonateLabel">Donate My Savings</strong>
+        <span id="gcDonateDesc">Your pledge savings will be donated to help fund cleaning on underfunded and high-need blocks. <a href="https://www.shareglitter.com/donate-savings" target="_blank">Learn more</a></span>
+      </div>
+      <div class="gc-toggle" id="gcDonateToggle">
+        <div class="gc-toggle-track">
+          <div class="gc-toggle-thumb"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="gc-footer">
+      <div></div>
+      <button class="gc-next-btn" onclick="gcNextStep()">
+        Next: Contact Info
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- STEP 2: CONTACT INFO -->
+  <div class="gc-step" id="gcStep2" style="display:none;">
+    <div class="gc-step-indicator">Step 2 of 2</div>
+    <h3 class="gc-step-title">Enter your contact information</h3>
+    <p class="gc-step-desc">
+      We'll use your address to set up your new block, then email you a custom block page
+      and a link to set up payment. We'll also send block updates and cleaning
+      confirmations by text.
+    </p>
+
+    <div class="gc-form-row">
+      <div class="gc-form-group">
+        <label class="gc-form-label">First Name</label>
+        <input class="gc-form-input" type="text" id="gcFirstName" required>
+      </div>
+      <div class="gc-form-group">
+        <label class="gc-form-label">Last Name</label>
+        <input class="gc-form-input" type="text" id="gcLastName" required>
+      </div>
+    </div>
+
+    <div class="gc-form-row">
+      <div class="gc-form-group" style="max-width: 220px;">
+        <label class="gc-form-label">Display Name <span class="gc-hint">(visible to neighbors)</span></label>
+        <input class="gc-form-input" type="text" id="gcDisplayName">
+      </div>
+    </div>
+
+    <div class="gc-form-row">
+      <div class="gc-form-group">
+        <label class="gc-form-label">Street Address <span class="gc-hint">(this is how we find your block)</span></label>
+        <input class="gc-form-input" type="text" id="gcStreetAddress" placeholder="e.g. 750 S 15th St" required>
+      </div>
+    </div>
+
+    <div class="gc-form-row">
+      <div class="gc-form-group">
+        <label class="gc-form-label">Email</label>
+        <div class="gc-form-input-icon">
+          <svg class="gc-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="4" width="20" height="16" rx="2"/>
+            <path d="M22 7l-10 7L2 7"/>
+          </svg>
+          <input class="gc-form-input" type="email" id="gcEmail" required>
+        </div>
+      </div>
+      <div class="gc-form-group">
+        <label class="gc-form-label">Phone</label>
+        <input class="gc-form-input" type="tel" id="gcPhone">
+      </div>
+    </div>
+
+    <!-- SMS opt-in -->
+    <div class="gc-optin-row gc-checked" id="gcOptinRow">
+      <div class="gc-optin-checkbox">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+      </div>
+      <div class="gc-optin-text">
+        I agree to make a recurring payment every 4 weeks up to the amount of my pledge.
+        Change or cancel anytime. We'll text block updates each week. Reply STOP to opt out.
+      </div>
+    </div>
+
+    <div class="gc-footer">
+      <button class="gc-back-btn" onclick="gcPrevStep()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><polyline points="15 18 9 12 15 6"/></svg>
+        Back
+      </button>
+      <button class="gc-next-btn" id="gcSubmitBtn" onclick="gcSubmit()">
+        Sign Up
+      </button>
+    </div>
+  </div>
+
+  <!-- SUCCESS STATE -->
+  <div class="gc-step" id="gcStepSuccess" style="display:none;">
+    <div class="gc-success-msg">
+      <h3>Welcome to Glitter!</h3>
+      <p>
+        Thanks for starting a new block! Check your email for a link
+        to set up payment and access your custom block page.
+      </p>
+      <button class="gc-success-close" onclick="window.location.reload()">Start another signup</button>
+    </div>
+  </div>
+
+</div>
+
+
+<script>
+(function() {
+  /* ================================================================
+     CONFIG - UPDATE THESE
+     ================================================================ */
+  var WEBHOOK_URL  = 'https://hooks.zapier.com/hooks/catch/10651977/46ohxr2/';
+  var REDIRECT_URL = 'https://app.shareglitter.com/welcome-new';
+
+  // Parse ?ref= for ambassador tracking
+  var urlParams = new URLSearchParams(window.location.search);
+  var ambassadorRef = urlParams.get('ref') || '';
+
+  /* ================================================================
+     STATE
+     No block search in this variant — every signup is a new block.
+     ================================================================ */
+  var state = {
+    currentStep: 1,
+    pledgeAmount: 10,
+    donateSavings: true,
+    smsOptin: true,
+  };
+
+  /* ================================================================
+     IFRAME RESIZE HELPER
+     When embedded in an iframe with iframeResizer, tell the parent
+     to recalculate height after any DOM change.
+     ================================================================ */
+  function triggerResize() {
+    setTimeout(function() {
+      if (window.parentIFrame) {
+        window.parentIFrame.size();
+      }
+    }, 50);
+  }
+
+  /* ================================================================
+     STEP NAVIGATION
+     ================================================================ */
+  window.gcNextStep = function() {
+    if (state.currentStep < 2) {
+      showStep(state.currentStep + 1);
+    }
+  };
+
+  window.gcPrevStep = function() {
+    if (state.currentStep > 1) {
+      showStep(state.currentStep - 1);
+    }
+  };
+
+  function showStep(n) {
+    state.currentStep = n;
+    document.getElementById('gcError').style.display = 'none';
+
+    var steps = document.querySelectorAll('.gc-step');
+    for (var i = 0; i < steps.length; i++) {
+      steps[i].style.display = 'none';
+    }
+
+    if (n === 1) document.getElementById('gcStep1').style.display = 'block';
+    if (n === 2) document.getElementById('gcStep2').style.display = 'block';
+
+    triggerResize();
+  }
+
+  /* ================================================================
+     PLEDGE SELECTION
+     ================================================================ */
+  var pledgeOptions = document.querySelectorAll('#gcPledgeOptions .gc-pledge-option');
+  pledgeOptions.forEach(function(opt) {
+    opt.addEventListener('click', function() {
+      pledgeOptions.forEach(function(o) { o.classList.remove('gc-selected'); });
+      opt.classList.add('gc-selected');
+
+      if (opt.dataset.amount === 'other') {
+        var input = opt.querySelector('input');
+        if (input) setTimeout(function() { input.focus(); }, 100);
+      } else {
+        state.pledgeAmount = parseInt(opt.dataset.amount);
+      }
+      triggerResize();
+    });
+  });
+
+  var otherInput = document.getElementById('gcOtherAmt');
+  if (otherInput) {
+    otherInput.addEventListener('click', function(e) { e.stopPropagation(); });
+    otherInput.addEventListener('input', function() {
+      state.pledgeAmount = parseInt(this.value) || 0;
+    });
+  }
+
+  // Donate My Savings toggle
+  var donateRow = document.getElementById('gcDonateRow');
+  if (donateRow) {
+    donateRow.addEventListener('click', function(e) {
+      if (e.target.tagName === 'A') return; // don't toggle on link click
+      var isOn = this.classList.toggle('gc-on');
+      state.donateSavings = isOn;
+      var label = document.getElementById('gcDonateLabel');
+      var desc  = document.getElementById('gcDonateDesc');
+      if (isOn) {
+        label.textContent = 'Donate My Savings';
+        desc.innerHTML = 'Your pledge savings will be donated to help fund cleaning on underfunded and high-need blocks. <a href="https://www.shareglitter.com/donate-savings" target="_blank">Learn more</a>';
+      } else {
+        label.textContent = 'Keep My Savings';
+        desc.innerHTML = 'When your block is fully funded, any savings from additional neighbors joining will lower your monthly payment. <a href="https://www.shareglitter.com/donate-savings" target="_blank">Learn more</a>';
+      }
+      triggerResize();
+    });
+  }
+
+  /* ================================================================
+     SMS OPT-IN TOGGLE
+     ================================================================ */
+  var optinRow = document.getElementById('gcOptinRow');
+  if (optinRow) {
+    optinRow.addEventListener('click', function() {
+      this.classList.toggle('gc-checked');
+      state.smsOptin = this.classList.contains('gc-checked');
+    });
+  }
+
+  /* ================================================================
+     FORM SUBMISSION
+     ================================================================ */
+  window.gcSubmit = function() {
+    var firstName     = document.getElementById('gcFirstName').value.trim();
+    var lastName      = document.getElementById('gcLastName').value.trim();
+    var email         = document.getElementById('gcEmail').value.trim();
+    var phone         = document.getElementById('gcPhone').value.trim();
+    var displayName   = document.getElementById('gcDisplayName').value.trim();
+    var streetAddress = document.getElementById('gcStreetAddress').value.trim();
+
+    // Clear errors
+    document.querySelectorAll('.gc-form-input').forEach(function(el) {
+      el.classList.remove('gc-error');
+    });
+
+    var errors = [];
+    if (!firstName) {
+      errors.push('First name is required');
+      document.getElementById('gcFirstName').classList.add('gc-error');
+    }
+    if (!lastName) {
+      errors.push('Last name is required');
+      document.getElementById('gcLastName').classList.add('gc-error');
+    }
+    // Address is the only block identifier in this variant, so it's required.
+    if (!streetAddress) {
+      errors.push('Street address is required so we can set up your block');
+      document.getElementById('gcStreetAddress').classList.add('gc-error');
+    }
+    if (!email || !email.match(/^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/)) {
+      errors.push('Valid email is required');
+      document.getElementById('gcEmail').classList.add('gc-error');
+    }
+
+    var phoneDigits = phone.replace(/\D/g, '');
+    if (phoneDigits.length === 11 && phoneDigits.charAt(0) === '1') {
+      phoneDigits = phoneDigits.substring(1);
+    }
+    if (!phoneDigits || phoneDigits.length !== 10) {
+      errors.push('Phone must be 10 digits');
+      document.getElementById('gcPhone').classList.add('gc-error');
+    }
+
+    // Check other amount
+    var selectedPledge = document.querySelector('#gcPledgeOptions .gc-selected');
+    if (selectedPledge && selectedPledge.dataset.amount === 'other') {
+      state.pledgeAmount = parseInt(document.getElementById('gcOtherAmt').value) || 0;
+    }
+    if (!state.pledgeAmount || state.pledgeAmount < 1) {
+      errors.push('Please enter a pledge amount');
+    }
+
+    if (errors.length > 0) {
+      var errorEl = document.getElementById('gcError');
+      errorEl.textContent = errors.join('. ') + '.';
+      errorEl.style.display = 'block';
+      triggerResize();
+      return;
+    }
+
+    // Map pledge to Airtable option names (matching the singleSelect values)
+    var pledgeOptionMap = {
+      10: '$10/mo \u2014 Starter pledge',
+      20: '$20/mo \u2014 Most popular',
+      50: '$50/mo \u2014 Cleanup Champion',
+    };
+    var choosePledge = pledgeOptionMap[state.pledgeAmount] || 'Choose a different amount';
+
+    // Build payload (matches pledge modal format exactly).
+    // No block is ever selected here — always a new block.
+    var payload = {
+      'First Name': firstName,
+      'Last Name': lastName,
+      'Display Name': displayName || firstName,
+      'Email': email,
+      'Phone': phone,
+      'Choose Pledge': choosePledge,
+      'Custom Pledge': state.pledgeAmount,
+      'Street Address': streetAddress,
+      'Block Code': '',
+      'Source': window.location.href,
+      'Ambassador Source': ambassadorRef,
+      'SMS Opt In': state.smsOptin,
+      'Services': ['Cleaning'],
+      'Compost Opt-In': 'Not Right Now',
+      blockName: streetAddress,
+      blockRecordId: '',
+      newBlock: true,
+      'Neighborhood Fund Opt In': state.donateSavings,
+      timestamp: new Date().toISOString(),
+    };
+
+    console.log('GC New Block: submitting', payload);
+
+    var submitBtn = document.getElementById('gcSubmitBtn');
+    submitBtn.classList.add('gc-submitting');
+    submitBtn.textContent = 'Submitting...';
+
+    fetch(WEBHOOK_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+    .then(function() {
+      if (REDIRECT_URL) {
+        var url = REDIRECT_URL +
+          '?email=' + encodeURIComponent(email) +
+          '&amount=' + state.pledgeAmount +
+          '&newblock=1';
+        window.location.href = url;
+      } else {
+        var steps = document.querySelectorAll('.gc-step');
+        for (var i = 0; i < steps.length; i++) steps[i].style.display = 'none';
+        document.getElementById('gcStepSuccess').style.display = 'block';
+        triggerResize();
+      }
+    })
+    .catch(function(err) {
+      console.error('GC New Block: submit error', err);
+      var errorEl = document.getElementById('gcError');
+      errorEl.textContent = 'Something went wrong. Please try again.';
+      errorEl.style.display = 'block';
+      submitBtn.classList.remove('gc-submitting');
+      submitBtn.textContent = 'Sign Up';
+      triggerResize();
+    });
+  };
+
+})();
+</script>

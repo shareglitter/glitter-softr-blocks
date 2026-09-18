@@ -1,0 +1,1678 @@
+<!-- ============================================================
+     PLEDGE MODAL - Softr Custom Code Block
+     ============================================================
+
+     A multi-step pledge modal that can be triggered from anywhere
+     on the page via window.openPledgeModal().
+
+     Place this block on any page where pledging should be available.
+     Set Softr visibility: "Users who are NOT logged in"
+
+     STEPS:
+     1. Choose a Service (only if compost available)
+     2. Make a Pledge ($10/$20/$50/Other + Donate My Savings toggle)
+     3. Contact Info (name, email, phone, opt-in) + Submit
+
+     CONFIG:
+     - WEBHOOK_URL: Zapier webhook endpoint
+     - Set HAS_COMPOST in JS or pass via window.glitterRecord
+
+     CHANGELOG:
+     - 2026-08-04: Added "Cleanings funded each month" progress bar
+       with dynamic update on pledge selection
+     - 2026-08-03: Changed Donate My Savings from checkbox to toggle
+       with dynamic text (ON = donate, OFF = keep savings)
+     ============================================================ -->
+
+<style>
+  /* ============================================================
+     MODAL OVERLAY
+     ============================================================ */
+  .gc-modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 10000;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    box-sizing: border-box;
+    font-family: 'Epilogue', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+
+  .gc-modal-overlay.gc-open {
+    display: flex;
+  }
+
+  /* ============================================================
+     MODAL CARD
+     ============================================================ */
+  .gc-modal-card {
+    background: #ede9df;
+    border-radius: 20px;
+    width: 100%;
+    max-width: 640px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    position: relative;
+  }
+
+  .gc-modal-inner {
+    padding: 40px 48px;
+  }
+
+  /* ============================================================
+     HEADER - Block name + map
+     ============================================================ */
+  .gc-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 24px;
+    margin-bottom: 24px;
+  }
+
+  .gc-modal-block-name {
+    font-size: 28px;
+    font-weight: 900;
+    color: #352f44;
+    line-height: 1.15;
+    margin: 0;
+  }
+
+  .gc-modal-block-desc {
+    font-size: 14px;
+    color: #6b6b6b;
+    margin: 6px 0 0;
+    line-height: 1.4;
+  }
+
+  .gc-modal-map {
+    width: 160px;
+    height: 120px;
+    border-radius: 10px;
+    object-fit: cover;
+    flex-shrink: 0;
+  }
+
+  /* ============================================================
+     STEP INDICATOR
+     ============================================================ */
+  .gc-step-indicator {
+    font-size: 13px;
+    font-weight: 600;
+    color: #157275;
+    margin-bottom: 4px;
+  }
+
+  .gc-step-title {
+    font-size: 22px;
+    font-weight: 800;
+    color: #352f44;
+    margin: 0 0 8px;
+  }
+
+  .gc-step-desc {
+    font-size: 15px;
+    color: #6b6b6b;
+    margin: 0 0 20px;
+    line-height: 1.5;
+  }
+
+  .gc-step-desc a {
+    color: #157275;
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  .gc-step-desc a:hover {
+    text-decoration: underline;
+  }
+
+  /* ============================================================
+     STEP 1 - SERVICE CARDS
+     ============================================================ */
+  .gc-service-options {
+    display: flex;
+    gap: 12px;
+  }
+
+  .gc-service-option {
+    flex: 1;
+    background: #ffffff;
+    border: 2px solid #e0dbd2;
+    border-radius: 12px;
+    padding: 20px 16px;
+    cursor: pointer;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  .gc-service-option:hover {
+    border-color: #157275;
+  }
+
+  .gc-service-option.gc-selected {
+    border-color: #157275;
+    box-shadow: 0 0 0 1px #157275;
+  }
+
+  .gc-service-option .gc-radio {
+    width: 18px;
+    height: 18px;
+    border: 2px solid #ccc;
+    border-radius: 50%;
+    margin-bottom: 10px;
+    position: relative;
+    transition: border-color 0.2s;
+  }
+
+  .gc-service-option.gc-selected .gc-radio {
+    border-color: #157275;
+  }
+
+  .gc-service-option.gc-selected .gc-radio::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 8px;
+    height: 8px;
+    background: #157275;
+    border-radius: 50%;
+  }
+
+  .gc-service-name {
+    font-size: 16px;
+    font-weight: 700;
+    color: #157275;
+    margin-bottom: 6px;
+  }
+
+  .gc-service-desc {
+    font-size: 13px;
+    color: #6b6b6b;
+    line-height: 1.4;
+  }
+
+  /* ============================================================
+     STEP 2 - PLEDGE CARDS
+     ============================================================ */
+  .gc-modal-pledge-options {
+    display: flex;
+    gap: 12px;
+  }
+
+  .gc-modal-pledge-option {
+    flex: 1;
+    background: #ffffff;
+    border: 2px solid #e0dbd2;
+    border-radius: 12px;
+    padding: 16px 10px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  .gc-modal-pledge-option:hover {
+    border-color: #157275;
+  }
+
+  .gc-modal-pledge-option.gc-selected {
+    border-color: #157275;
+    box-shadow: 0 0 0 1px #157275;
+  }
+
+  .gc-modal-pledge-option .gc-radio {
+    width: 18px;
+    height: 18px;
+    border: 2px solid #ccc;
+    border-radius: 50%;
+    margin: 0 auto 10px;
+    position: relative;
+    transition: border-color 0.2s;
+  }
+
+  .gc-modal-pledge-option.gc-selected .gc-radio {
+    border-color: #157275;
+  }
+
+  .gc-modal-pledge-option.gc-selected .gc-radio::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 8px;
+    height: 8px;
+    background: #157275;
+    border-radius: 50%;
+  }
+
+  .gc-modal-pledge-amount {
+    font-size: 26px;
+    font-weight: 700;
+    color: #157275;
+    line-height: 1.2;
+  }
+
+  .gc-modal-pledge-amount .gc-mo {
+    font-size: 13px;
+    font-weight: 400;
+    color: #666;
+  }
+
+  .gc-modal-pledge-amount.gc-other-text {
+    font-size: 22px;
+    color: #352f44;
+  }
+
+  .gc-modal-pledge-label {
+    font-size: 11px;
+    color: #888;
+    margin-top: 4px;
+  }
+
+  .gc-modal-other-input {
+    display: none;
+    margin-top: 8px;
+  }
+
+  .gc-modal-pledge-option.gc-other.gc-selected .gc-modal-other-input {
+    display: block;
+  }
+
+  .gc-modal-other-input input {
+    width: 100%;
+    padding: 6px 10px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 15px;
+    text-align: center;
+    outline: none;
+    font-family: inherit;
+    box-sizing: border-box;
+  }
+
+  .gc-modal-other-input input:focus {
+    border-color: #157275;
+  }
+
+  /* Cleanings Funded Progress Bar */
+  .gc-funding-bar {
+    background: #f5f3ef;
+    border: 1px solid #e0dbd2;
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 20px;
+  }
+
+  .gc-funding-bar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+
+  .gc-funding-bar-label {
+    font-size: 14px;
+    font-weight: 700;
+    color: #352f44;
+  }
+
+  .gc-funding-bar-cost {
+    font-size: 12px;
+    color: #888;
+  }
+
+  .gc-funding-segments {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 10px;
+  }
+
+  .gc-funding-seg {
+    flex: 1;
+    height: 32px;
+    border-radius: 6px;
+    position: relative;
+    overflow: hidden;
+    transition: background 0.3s;
+  }
+
+  /* Fully funded segment */
+  .gc-funding-seg.gc-seg-funded {
+    background: #157275;
+  }
+
+  /* Segment that would be funded with user's pledge */
+  .gc-funding-seg.gc-seg-projected {
+    background: #7cc4c6;
+  }
+
+  /* Partially filled projected segment */
+  .gc-funding-seg.gc-seg-partial {
+    background: #e8e4dc;
+  }
+
+  .gc-funding-seg.gc-seg-partial .gc-seg-fill {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    border-radius: 6px;
+    transition: width 0.3s, background 0.3s;
+  }
+
+  /* Unfunded segment */
+  .gc-funding-seg.gc-seg-empty {
+    background: #e8e4dc;
+  }
+
+  /* Lock icon for unfunded segments */
+  .gc-seg-icon {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 14px;
+    height: 14px;
+    color: #c0bbb2;
+  }
+
+  /* Sparkle icon for funded segments */
+  .gc-seg-icon-funded {
+    color: rgba(255, 255, 255, 0.6);
+  }
+
+  .gc-funding-summary {
+    font-size: 13px;
+    color: #6b6b6b;
+    line-height: 1.4;
+  }
+
+  .gc-funding-impact {
+    margin-top: 12px;
+    padding: 10px 16px;
+    background: #d3f5ec;
+    border-radius: 8px;
+    font-size: 13px;
+    color: #0e5c5e;
+    font-weight: 600;
+    display: none;
+  }
+
+  .gc-funding-impact .gc-highlight {
+    color: #157275;
+  }
+
+  /* Donate My Savings - Toggle Row */
+  .gc-donate-row {
+    margin-top: 16px;
+    border-radius: 12px;
+    padding: 16px 20px;
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    cursor: pointer;
+    transition: background 0.25s, border-color 0.25s;
+  }
+
+  /* ON state (donating) */
+  .gc-donate-row.gc-checked {
+    background: #d3f5ec;
+    border: 1px solid #b0e8d9;
+  }
+
+  .gc-donate-row.gc-checked:hover {
+    background: #c4f0e3;
+  }
+
+  /* OFF state (keeping savings) */
+  .gc-donate-row:not(.gc-checked) {
+    background: #f5f3ef;
+    border: 1px solid #e0dbd2;
+  }
+
+  .gc-donate-row:not(.gc-checked):hover {
+    background: #eceae4;
+  }
+
+  /* Toggle switch track */
+  .gc-donate-toggle {
+    width: 44px;
+    height: 24px;
+    border-radius: 12px;
+    flex-shrink: 0;
+    position: relative;
+    margin-top: 1px;
+    transition: background 0.25s;
+  }
+
+  .gc-donate-row.gc-checked .gc-donate-toggle {
+    background: #157275;
+  }
+
+  .gc-donate-row:not(.gc-checked) .gc-donate-toggle {
+    background: #c0bbb2;
+  }
+
+  /* Toggle switch knob */
+  .gc-donate-toggle::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #ffffff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    transition: left 0.25s;
+  }
+
+  .gc-donate-row.gc-checked .gc-donate-toggle::after {
+    left: 22px;
+  }
+
+  .gc-donate-row:not(.gc-checked) .gc-donate-toggle::after {
+    left: 2px;
+  }
+
+  .gc-donate-text {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .gc-donate-text strong {
+    display: block;
+    font-size: 15px;
+    color: #352f44;
+    margin-bottom: 2px;
+  }
+
+  .gc-donate-text span {
+    font-size: 13px;
+    color: #6b6b6b;
+    line-height: 1.4;
+  }
+
+  .gc-donate-text a {
+    color: #157275;
+    text-decoration: underline;
+  }
+
+  /* ============================================================
+     STEP 3 - CONTACT FORM
+     ============================================================ */
+  .gc-form-row {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .gc-form-group {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .gc-form-label {
+    display: block;
+    font-size: 14px;
+    font-weight: 700;
+    color: #352f44;
+    margin-bottom: 6px;
+  }
+
+  .gc-form-label .gc-hint {
+    font-weight: 400;
+    color: #888;
+    margin-left: 8px;
+  }
+
+  .gc-form-input {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1.5px solid #e0dbd2;
+    border-radius: 10px;
+    font-size: 15px;
+    font-family: inherit;
+    outline: none;
+    box-sizing: border-box;
+    background: #ffffff;
+    transition: border-color 0.15s;
+  }
+
+  .gc-form-input:focus {
+    border-color: #157275;
+  }
+
+  .gc-form-input.gc-error {
+    border-color: #e74c3c;
+  }
+
+  .gc-form-input-icon {
+    position: relative;
+  }
+
+  .gc-form-input-icon .gc-icon {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #aaa;
+    width: 18px;
+    height: 18px;
+  }
+
+  .gc-form-input-icon .gc-form-input {
+    padding-left: 40px;
+  }
+
+  /* SMS Opt-in */
+  .gc-optin-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-top: 20px;
+    cursor: pointer;
+  }
+
+  .gc-optin-checkbox {
+    width: 20px;
+    height: 20px;
+    border: 2px solid #ccc;
+    border-radius: 4px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 2px;
+    transition: background 0.15s, border-color 0.15s;
+  }
+
+  .gc-optin-row.gc-checked .gc-optin-checkbox {
+    background: #157275;
+    border-color: #157275;
+  }
+
+  .gc-optin-checkbox svg {
+    display: none;
+    width: 12px;
+    height: 12px;
+  }
+
+  .gc-optin-row.gc-checked .gc-optin-checkbox svg {
+    display: block;
+  }
+
+  .gc-optin-text {
+    font-size: 13px;
+    color: #6b6b6b;
+    line-height: 1.4;
+  }
+
+  /* ============================================================
+     FOOTER - Cancel / Back + Next / Submit
+     ============================================================ */
+  .gc-modal-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 32px;
+    padding-top: 20px;
+    border-top: 1px solid #e0dbd2;
+  }
+
+  .gc-modal-cancel {
+    background: none;
+    border: none;
+    color: #6b6b6b;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    padding: 8px 0;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .gc-modal-cancel:hover {
+    color: #352f44;
+  }
+
+  .gc-modal-next {
+    background: #ffa25c;
+    color: #ffffff;
+    border: none;
+    border-radius: 100px;
+    padding: 14px 32px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: background 0.2s;
+  }
+
+  .gc-modal-next:hover {
+    background: #e8914f;
+  }
+
+  .gc-modal-next:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .gc-modal-next svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  /* Submitting state */
+  .gc-modal-next.gc-submitting {
+    pointer-events: none;
+    opacity: 0.7;
+  }
+
+  /* Success message */
+  .gc-success-msg {
+    text-align: center;
+    padding: 40px 20px;
+  }
+
+  .gc-success-msg h3 {
+    font-size: 24px;
+    font-weight: 800;
+    color: #157275;
+    margin: 0 0 12px;
+  }
+
+  .gc-success-msg p {
+    font-size: 15px;
+    color: #6b6b6b;
+    line-height: 1.5;
+    margin: 0 0 24px;
+  }
+
+  .gc-success-close {
+    background: #157275;
+    color: #ffffff;
+    border: none;
+    border-radius: 100px;
+    padding: 14px 32px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+  }
+
+  .gc-success-close:hover {
+    background: #0e5c5e;
+  }
+
+  /* Error message */
+  .gc-error-msg {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 10px;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    color: #dc2626;
+    font-size: 14px;
+    display: none;
+  }
+
+  /* ============================================================
+     RESPONSIVE
+     ============================================================ */
+  @media (max-width: 600px) {
+    .gc-modal-inner {
+      padding: 28px 20px;
+    }
+
+    .gc-modal-header {
+      flex-direction: column-reverse;
+      gap: 12px;
+    }
+
+    .gc-modal-map {
+      width: 100%;
+      height: 140px;
+    }
+
+    .gc-modal-block-name {
+      font-size: 22px;
+    }
+
+    .gc-service-options {
+      flex-direction: column;
+    }
+
+    .gc-modal-pledge-options {
+      flex-wrap: wrap;
+    }
+
+    .gc-modal-pledge-option {
+      flex: 1 1 calc(50% - 6px);
+    }
+
+    .gc-form-row {
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .gc-modal-footer {
+      flex-direction: column-reverse;
+      gap: 12px;
+    }
+
+    .gc-modal-next {
+      width: 100%;
+      justify-content: center;
+    }
+  }
+</style>
+
+<!-- ============================================================
+     MODAL HTML
+     ============================================================ -->
+<div class="gc-modal-overlay" id="gcPledgeModal">
+  <div class="gc-modal-card">
+    <div class="gc-modal-inner">
+
+      <!-- HEADER - block info (persistent) -->
+      <div class="gc-modal-header">
+        <div>
+          <h2 class="gc-modal-block-name" id="gcModalBlockName">Your Block</h2>
+          <p class="gc-modal-block-desc" id="gcModalBlockDesc"></p>
+        </div>
+        <img class="gc-modal-map" id="gcModalMap"
+             src="https://images.squarespace-cdn.com/content/v1/63c45f967196096ae1a4037b/c13c71fb-a379-4994-b66d-a2f2f220d9c2/WaveAndBroomRocky.png?format=1000w"
+             alt="Block map" />
+      </div>
+
+      <!-- ERROR MESSAGE -->
+      <div class="gc-error-msg" id="gcModalError"></div>
+
+      <!-- STEP 1: CHOOSE SERVICE (shown only if compost available) -->
+      <div class="gc-modal-step" id="gcStep1" style="display:none;">
+        <div class="gc-step-indicator" id="gcStep1Ind">Step 1 of 3</div>
+        <h3 class="gc-step-title">Choose a service</h3>
+        <p class="gc-step-desc">
+          Glitter offers both cleaning and composting services to help keep
+          our communities clean and sustainable, while making Philly shine for everyone.
+        </p>
+
+        <div class="gc-service-options" id="gcServiceOptions">
+          <div class="gc-service-option gc-selected" data-service="cleaning">
+            <div class="gc-radio"></div>
+            <div class="gc-service-name">Block Cleaning</div>
+            <div class="gc-service-desc">Pledge whatever you can towards keeping your block clean</div>
+          </div>
+          <div class="gc-service-option" data-service="composting">
+            <div class="gc-radio"></div>
+            <div class="gc-service-name">Composting</div>
+            <div class="gc-service-desc">Drop your compostables off at a shared bin in a convenient location for
+              $15/month</div>
+          </div>
+          <div class="gc-service-option" data-service="both">
+            <div class="gc-radio"></div>
+            <div class="gc-service-name">Block Cleaning + Composting</div>
+            <div class="gc-service-desc">Go all in on Glitter by pledging toward block cleaning + $15/month composting
+            </div>
+          </div>
+        </div>
+
+        <div class="gc-modal-footer">
+          <button class="gc-modal-cancel" onclick="gcCloseModal()">Cancel</button>
+          <button class="gc-modal-next" onclick="gcNextStep()">
+            Next: Make a Pledge
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- STEP 2: MAKE A PLEDGE -->
+      <div class="gc-modal-step" id="gcStep2" style="display:none;">
+        <div class="gc-step-indicator" id="gcStep2Ind">Step 1 of 2</div>
+        <h3 class="gc-step-title">Make a pledge</h3>
+        <p class="gc-step-desc">
+          Choose an amount that fits your monthly budget—this is the most you'll ever pay. As more neighbors join, you
+          often pay even less!
+        </p>
+
+        <!-- Cleanings Funded Progress Bar -->
+        <div class="gc-funding-bar" id="gcFundingBar" style="display:none;">
+          <div class="gc-funding-bar-header">
+            <span class="gc-funding-bar-label">Cleanings funded each month</span>
+            <span class="gc-funding-bar-cost" id="gcFundingCost"></span>
+          </div>
+          <div class="gc-funding-segments" id="gcFundingSegments"></div>
+          <div class="gc-funding-summary" id="gcFundingSummary"></div>
+          <div class="gc-funding-impact" id="gcFundingImpact"></div>
+        </div>
+
+        <div class="gc-modal-pledge-options" id="gcModalPledgeOptions">
+          <div class="gc-modal-pledge-option" data-amount="10">
+            <div class="gc-radio"></div>
+            <div class="gc-modal-pledge-amount">$10<span class="gc-mo">/mo</span></div>
+            <div class="gc-modal-pledge-label">Starter Pledge</div>
+          </div>
+          <div class="gc-modal-pledge-option gc-selected" data-amount="20">
+            <div class="gc-radio"></div>
+            <div class="gc-modal-pledge-amount">$20<span class="gc-mo">/mo</span></div>
+            <div class="gc-modal-pledge-label">Most Popular</div>
+          </div>
+          <div class="gc-modal-pledge-option" data-amount="50">
+            <div class="gc-radio"></div>
+            <div class="gc-modal-pledge-amount">$50<span class="gc-mo">/mo</span></div>
+            <div class="gc-modal-pledge-label">Block Champion</div>
+          </div>
+          <div class="gc-modal-pledge-option gc-other" data-amount="other">
+            <div class="gc-radio"></div>
+            <div class="gc-modal-pledge-amount gc-other-text">Other</div>
+            <div class="gc-modal-pledge-label">Pay-What-You-Can</div>
+            <div class="gc-modal-other-input">
+              <input type="number" placeholder="$" min="1" id="gcModalOtherAmt"
+                     onclick="event.stopPropagation()">
+            </div>
+          </div>
+        </div>
+
+        <!-- Donate My Savings - Toggle -->
+        <div class="gc-donate-row gc-checked" id="gcDonateRow">
+          <div class="gc-donate-toggle"></div>
+          <div class="gc-donate-text">
+            <strong id="gcDonateTitle">Donate My Savings</strong>
+            <span id="gcDonateDesc">Choose to donate your pledge savings back to Glitter to be used on underfunded and high-need blocks. <a href="https://www.shareglitter.com/donate-savings" target="_blank">Learn more</a></span>
+          </div>
+        </div>
+
+        <div class="gc-modal-footer">
+          <button class="gc-modal-cancel" id="gcStep2Back" onclick="gcPrevStep()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><polyline points="15 18 9 12 15 6"/></svg>
+            Back
+          </button>
+          <button class="gc-modal-next" onclick="gcNextStep()">
+            Next: Contact Info
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- STEP 3: CONTACT INFO -->
+      <div class="gc-modal-step" id="gcStep3" style="display:none;">
+        <div class="gc-step-indicator" id="gcStep3Ind">Step 2 of 2</div>
+        <h3 class="gc-step-title">Enter your contact information</h3>
+        <p class="gc-step-desc">
+          We'll email you a custom block page and a link to set up payment.
+          We'll also send block updates and cleaning confirmations by text.
+        </p>
+
+        <div class="gc-form-row">
+          <div class="gc-form-group">
+            <label class="gc-form-label">First Name</label>
+            <input class="gc-form-input" type="text" id="gcFirstName" placeholder="" required>
+          </div>
+          <div class="gc-form-group">
+            <label class="gc-form-label">Last Name</label>
+            <input class="gc-form-input" type="text" id="gcLastName" placeholder="" required>
+          </div>
+        </div>
+
+        <div class="gc-form-row">
+          <div class="gc-form-group" style="max-width: 220px;">
+            <label class="gc-form-label">Display Name <span class="gc-hint">(visible to neighbors)</span></label>
+            <input class="gc-form-input" type="text" id="gcDisplayName" placeholder="">
+          </div>
+        </div>
+
+        <div class="gc-form-row">
+          <div class="gc-form-group" style="flex: 1;">
+            <label class="gc-form-label">Street Address</label>
+            <input class="gc-form-input" type="text" id="gcStreetAddress" placeholder="e.g. 750 S 15th St">
+          </div>
+        </div>
+
+        <div class="gc-form-row">
+          <div class="gc-form-group">
+            <label class="gc-form-label">Email</label>
+            <div class="gc-form-input-icon">
+              <svg class="gc-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="4" width="20" height="16" rx="2" />
+                <path d="M22 7l-10 7L2 7" />
+              </svg>
+              <input class="gc-form-input" type="email" id="gcEmail" placeholder="" required>
+            </div>
+          </div>
+          <div class="gc-form-group">
+            <label class="gc-form-label">Phone</label>
+            <input class="gc-form-input" type="tel" id="gcPhone" placeholder="">
+          </div>
+        </div>
+
+        <!-- SMS opt-in -->
+        <div class="gc-optin-row gc-checked" id="gcOptinRow">
+          <div class="gc-optin-checkbox">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round"
+              stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+          </div>
+          <div class="gc-optin-text">
+            I agree to make a recurring payment every 4 weeks up to the amount of my pledge.
+            Change or cancel anytime. We'll text block updates each week. Reply STOP to opt out.
+          </div>
+        </div>
+
+        <div class="gc-modal-footer">
+          <button class="gc-modal-cancel" onclick="gcPrevStep()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><polyline points="15 18 9 12 15 6"/></svg>
+            Back
+          </button>
+          <button class="gc-modal-next" id="gcSubmitBtn" onclick="gcSubmitPledge()">
+            Sign Up
+          </button>
+        </div>
+      </div>
+
+      <!-- SUCCESS STATE -->
+      <div class="gc-modal-step" id="gcStepSuccess" style="display:none;">
+        <div class="gc-success-msg">
+          <h3>Welcome to Glitter!</h3>
+          <p>
+            Thanks for joining your neighbors! Check your email for a link
+            to set up payment and access your custom block page.
+          </p>
+          <button class="gc-success-close" onclick="gcCloseModal()">Got it!</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+
+<script>
+  (function() {
+  /* ================================================================
+     CONFIG
+     ================================================================ */
+  var WEBHOOK_URL = 'https://hooks.zapier.com/hooks/catch/10651977/46ohxr2/';
+  var REDIRECT_URL = 'https://app.shareglitter.com/welcome-new'; // Redirect after submit
+
+  // Parse ?ref= parameter from URL for ambassador tracking
+  var urlParams = new URLSearchParams(window.location.search);
+  var ambassadorRef = urlParams.get('ref') || '';
+
+  /* ================================================================
+     STATE
+     ================================================================ */
+  var state = {
+    currentStep: 1,
+    hasCompost: false,
+    totalSteps: 2,
+    service: 'cleaning',
+    pledgeAmount: 20,
+    donateSavings: true,
+    smsOptin: true,
+    blockName: '',
+    blockCode: '',
+    blockRecordId: '',
+    // Funding bar data (scraped from glitterRecord)
+    totalPledges: 0,       // Current monthly pledge total ($)
+    perWeekCost: 0,        // Cost of one cleaning ($)
+    gapToNext: 0,          // Gap to next funding level ($)
+    hasFundingData: false,  // Whether we have the data to show the bar
+  };
+
+  /* ================================================================
+     DONATE TOGGLE TEXT
+     ================================================================ */
+  var DONATE_ON = {
+    title: 'Donate My Savings',
+    desc: 'Choose to donate your pledge savings back to Glitter to be used on underfunded and high-need blocks. <a href="https://www.shareglitter.com/donate-savings" target="_blank">Learn more</a>'
+  };
+  var DONATE_OFF = {
+    title: 'Keep My Savings',
+    desc: 'As more neighbors pledge on your block, your share to support cleaning will go down and the savings goes back to you.'
+  };
+
+  function updateDonateText() {
+    var titleEl = document.getElementById('gcDonateTitle');
+    var descEl = document.getElementById('gcDonateDesc');
+    if (!titleEl || !descEl) return;
+    if (state.donateSavings) {
+      titleEl.textContent = DONATE_ON.title;
+      descEl.innerHTML = DONATE_ON.desc;
+    } else {
+      titleEl.textContent = DONATE_OFF.title;
+      descEl.innerHTML = DONATE_OFF.desc;
+    }
+  }
+
+  /* ================================================================
+     FUNDING BAR - Cleanings funded progress visualization
+     ================================================================ */
+  var MAX_SEGMENTS = 5; // Show up to 5 cleaning slots
+
+  function updateFundingBar() {
+    if (!state.hasFundingData || state.perWeekCost <= 0) return;
+
+    // Don't show the bar for fully funded blocks (gap = 0 means no more cleanings to unlock)
+    if (state.gapToNext <= 0 && state.totalPledges > 0) {
+      document.getElementById('gcFundingBar').style.display = 'none';
+      return;
+    }
+
+    var bar = document.getElementById('gcFundingBar');
+    var segments = document.getElementById('gcFundingSegments');
+    var summary = document.getElementById('gcFundingSummary');
+    var impact = document.getElementById('gcFundingImpact');
+    var costLabel = document.getElementById('gcFundingCost');
+    if (!bar || !segments) return;
+
+    bar.style.display = 'block';
+
+    var costPerCleaning = state.perWeekCost;
+    var monthlyCleanings = 4; // ~4 weeks per month
+    var monthlyCost = costPerCleaning * monthlyCleanings;
+
+    // Current state (without user's pledge)
+    var currentTotal = state.totalPledges;
+    // With user's pledge
+    var withPledge = currentTotal + (state.pledgeAmount || 0);
+
+    // How many full cleanings are funded currently vs. with pledge
+    var currentCleanings = currentTotal / costPerCleaning;
+    var projectedCleanings = withPledge / costPerCleaning;
+
+    // How many segments to show (at least current + 1 unfunded, capped at MAX_SEGMENTS)
+    var totalSegs = Math.max(
+      Math.ceil(projectedCleanings) + 1,
+      Math.ceil(currentCleanings) + 2
+    );
+    totalSegs = Math.min(totalSegs, MAX_SEGMENTS);
+    totalSegs = Math.max(totalSegs, 3); // Show at least 3
+
+    costLabel.textContent = '$' + costPerCleaning + ' funds one cleaning';
+
+    // SVG icons
+    var sparkleIcon = '<svg class="gc-seg-icon gc-seg-icon-funded" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.4 7.2H22l-6 4.8 2.4 7.2L12 16.4l-6.4 4.8L8 14 2 9.2h7.6z"/></svg>';
+    var lockIcon = '<svg class="gc-seg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>';
+
+    var html = '';
+    for (var i = 0; i < totalSegs; i++) {
+      var segStart = i * costPerCleaning;
+      var segEnd = (i + 1) * costPerCleaning;
+
+      if (segEnd <= currentTotal) {
+        // Fully funded by existing pledges
+        html += '<div class="gc-funding-seg gc-seg-funded">' + sparkleIcon + '</div>';
+      } else if (segStart >= withPledge) {
+        // Completely unfunded even with this pledge
+        html += '<div class="gc-funding-seg gc-seg-empty">' + lockIcon + '</div>';
+      } else if (segStart >= currentTotal && segEnd <= withPledge) {
+        // Fully funded by user's projected pledge
+        html += '<div class="gc-funding-seg gc-seg-projected">' + sparkleIcon + '</div>';
+      } else {
+        // Partially filled segment
+        var filledAmount;
+        var fillColor;
+        if (segStart < currentTotal) {
+          // Part existing, part from user pledge or gap
+          filledAmount = withPledge - segStart;
+          fillColor = segStart < currentTotal ? '#7cc4c6' : '#7cc4c6';
+          // Actually this segment straddles current total
+          // Show as partial with projected color
+          filledAmount = withPledge - segStart;
+        } else {
+          // Starts after current total, partially filled by pledge
+          filledAmount = withPledge - segStart;
+        }
+        var pct = Math.min(100, Math.max(0, (filledAmount / costPerCleaning) * 100));
+
+        if (pct > 0 && pct < 100) {
+          // Determine fill color: existing portion vs projected
+          var existingPortion = Math.max(0, currentTotal - segStart);
+          var projectedPortion = filledAmount - existingPortion;
+
+          if (existingPortion > 0 && projectedPortion > 0) {
+            // Split fill: existing teal + projected lighter teal
+            var existPct = (existingPortion / costPerCleaning) * 100;
+            var projPct = (filledAmount / costPerCleaning) * 100;
+            html += '<div class="gc-funding-seg gc-seg-partial">';
+            html += '<div class="gc-seg-fill" style="width:' + existPct + '%;background:#157275;border-radius:6px 0 0 6px;"></div>';
+            html += '<div class="gc-seg-fill" style="width:' + (projPct - existPct) + '%;left:' + existPct + '%;background:#7cc4c6;border-radius:0;"></div>';
+            html += lockIcon;
+            html += '</div>';
+          } else if (projectedPortion > 0) {
+            html += '<div class="gc-funding-seg gc-seg-partial">';
+            html += '<div class="gc-seg-fill" style="width:' + pct + '%;background:#7cc4c6;"></div>';
+            html += lockIcon;
+            html += '</div>';
+          } else {
+            html += '<div class="gc-funding-seg gc-seg-partial">';
+            html += '<div class="gc-seg-fill" style="width:' + pct + '%;background:#157275;"></div>';
+            html += lockIcon;
+            html += '</div>';
+          }
+        } else if (pct >= 100) {
+          html += '<div class="gc-funding-seg gc-seg-projected">' + sparkleIcon + '</div>';
+        } else {
+          html += '<div class="gc-funding-seg gc-seg-empty">' + lockIcon + '</div>';
+        }
+      }
+    }
+    segments.innerHTML = html;
+
+    // Summary text
+    var currentStr = '$' + Math.round(currentTotal);
+    var withStr = '$' + Math.round(withPledge);
+    var pledgeStr = '$' + (state.pledgeAmount || 0);
+    summary.textContent = 'Neighbors pledge ' + currentStr + '/mo · with your ' + pledgeStr + ', ' + withStr + '/mo';
+
+    // Impact text - show when pledge would make meaningful progress
+    var fullCleaningsWithPledge = Math.floor(projectedCleanings);
+    var remainder = withPledge - (fullCleaningsWithPledge * costPerCleaning);
+    var gapToNext = costPerCleaning - remainder;
+
+    if (remainder === 0 && fullCleaningsWithPledge > 0) {
+      // Exactly funds a cleaning
+      impact.innerHTML = 'Takes this block to ' + withStr + '/mo — fully funds <strong>' + fullCleaningsWithPledge + ' monthly cleaning' + (fullCleaningsWithPledge > 1 ? 's' : '') + '</strong>!';
+      impact.style.display = 'block';
+    } else if (fullCleaningsWithPledge > Math.floor(currentCleanings)) {
+      // Unlocks a new cleaning
+      impact.innerHTML = 'Takes this block to ' + withStr + '/mo — unlocks a <strong>' + ordinal(fullCleaningsWithPledge) + ' monthly cleaning</strong>!';
+      impact.style.display = 'block';
+    } else if (gapToNext > 0 && gapToNext <= costPerCleaning) {
+      // Close to next cleaning
+      impact.innerHTML = 'Takes this block to ' + withStr + '/mo — <strong>$' + Math.round(gapToNext) + ' short</strong> of a ' + ordinal(fullCleaningsWithPledge + 1) + ' monthly cleaning.';
+      impact.style.display = 'block';
+    } else {
+      impact.style.display = 'none';
+    }
+  }
+
+  function ordinal(n) {
+    var s = ['th','st','nd','rd'];
+    var v = n % 100;
+    return n + (s[(v - 20) % 10] || s[v] || s[0]);
+  }
+
+  /* ================================================================
+     INIT - pull block data from page context
+     ================================================================ */
+  // Check if a Softr template tag was actually replaced (not still "{{...}}")
+  function isSoftrValue(val) {
+    return val && val.indexOf('{{') === -1;
+  }
+
+  function init() {
+    var record = window.glitterRecord || {};
+
+    // Block name
+    var name = isSoftrValue(record['Block Name (Full)']) ? record['Block Name (Full)'] : '';
+    if (name) {
+      document.getElementById('gcModalBlockName').textContent = name;
+      state.blockName = name;
+    } else {
+      document.getElementById('gcModalBlockName').textContent = 'Join Glitter';
+    }
+
+    // Block description
+    var area = isSoftrValue(record['Cleanup Area']) ? record['Cleanup Area'] : '';
+    if (area) {
+      document.getElementById('gcModalBlockDesc').textContent =
+        'Join your neighbors by pledging toward keeping trash and litter off your street and sidewalk.';
+    } else {
+      document.getElementById('gcModalBlockDesc').textContent =
+        'Pledge toward keeping your block free of trash and litter each month.';
+    }
+
+    // Block map - dynamic from Airtable, Rocky mascot fallback
+    var ROCKY_FALLBACK = 'https://images.squarespace-cdn.com/content/v1/63c45f967196096ae1a4037b/c13c71fb-a379-4994-b66d-a2f2f220d9c2/WaveAndBroomRocky.png?format=1000w';
+    var mapEl = document.getElementById('gcModalMap');
+    var blockMap = record['Block Map'];
+    if (isSoftrValue(blockMap) && blockMap !== '-') {
+      // Block Map can be a URL string or an Airtable attachment array
+      var mapUrl = '';
+      if (typeof blockMap === 'string' && blockMap.match(/^https?:\/\//)) {
+        mapUrl = blockMap;
+      } else if (Array.isArray(blockMap) && blockMap.length > 0 && blockMap[0].url) {
+        mapUrl = blockMap[0].url;
+      }
+      if (mapUrl) {
+        mapEl.src = mapUrl;
+        mapEl.onerror = function() { mapEl.src = ROCKY_FALLBACK; };
+      } else {
+        mapEl.src = ROCKY_FALLBACK;
+      }
+    } else {
+      mapEl.src = ROCKY_FALLBACK;
+    }
+    console.log('GC Pledge Modal: block map', blockMap, '-> src:', mapEl.src);
+
+    // Block code
+    state.blockCode = isSoftrValue(record['Block Code']) ? record['Block Code'] : '';
+
+    // Block record ID
+    var urlRecordMatch = window.location.pathname.match(/\/r\/(rec[A-Za-z0-9]+)/);
+    state.blockRecordId = urlRecordMatch ? urlRecordMatch[1]
+      : (isSoftrValue(record['Record ID']) ? record['Record ID'] : '');
+
+    // Compost availability
+    var compost = record['Compost Pilot'];
+    state.hasCompost = isSoftrValue(compost) && (compost === 'true' || compost === '1' || compost === 'Yes');
+
+    if (state.hasCompost) {
+      state.totalSteps = 3;
+    } else {
+      state.totalSteps = 2;
+    }
+
+    // Funding bar data - strip $ and commas before parsing (Airtable formats as "$50", "$106", etc.)
+    function parseMoney(val) {
+      if (!val || !isSoftrValue(val)) return 0;
+      return parseFloat(String(val).replace(/[$,]/g, '')) || 0;
+    }
+    var totalPledges = parseMoney(record['Total Pledges']);
+    var perWeekCost = parseMoney(record['Per Week Cost']);
+    var gapToNext = parseMoney(record['Gap to Next Funding Level']);
+
+    state.totalPledges = totalPledges || 0;
+    state.perWeekCost = perWeekCost || 0;
+    state.gapToNext = gapToNext || 0;
+    state.hasFundingData = state.perWeekCost > 0; // Show bar if we know the cost per cleaning
+
+    console.log('GC Pledge Modal: funding data', {
+      totalPledges: state.totalPledges,
+      perWeekCost: state.perWeekCost,
+      gapToNext: state.gapToNext,
+      hasFundingData: state.hasFundingData
+    });
+
+    // Pre-select amount if passed via URL
+    var params = new URLSearchParams(window.location.search);
+    var urlAmount = params.get('amount');
+    if (urlAmount) {
+      var num = parseInt(urlAmount);
+      if ([10, 20, 50].indexOf(num) !== -1) {
+        state.pledgeAmount = num;
+        selectPledgeOption(num);
+      } else if (num > 0) {
+        state.pledgeAmount = num;
+        selectPledgeOption('other');
+        var otherInput = document.getElementById('gcModalOtherAmt');
+        if (otherInput) otherInput.value = num;
+      }
+    }
+
+    updateStepIndicators();
+    updateDonateText();
+    updateFundingBar(); // Render the cleanings progress bar
+    console.log('GC Pledge Modal: initialized', {
+      hasCompost: state.hasCompost,
+      totalSteps: state.totalSteps,
+      blockName: state.blockName
+    });
+  }
+
+  /* ================================================================
+     STEP NAVIGATION
+     ================================================================ */
+  function showStep(n) {
+    state.currentStep = n;
+
+    var steps = document.querySelectorAll('.gc-modal-step');
+    steps.forEach(function(s) { s.style.display = 'none'; });
+
+    document.getElementById('gcModalError').style.display = 'none';
+
+    var stepId;
+    if (state.hasCompost) {
+      if (n === 1) stepId = 'gcStep1';
+      else if (n === 2) stepId = 'gcStep2';
+      else if (n === 3) stepId = 'gcStep3';
+    } else {
+      if (n === 1) stepId = 'gcStep2';
+      else if (n === 2) stepId = 'gcStep3';
+    }
+
+    if (stepId) {
+      document.getElementById(stepId).style.display = 'block';
+    }
+
+    if (!state.hasCompost && n === 1) {
+      var backBtn = document.getElementById('gcStep2Back');
+      if (backBtn) backBtn.style.display = 'none';
+    } else {
+      var backBtn2 = document.getElementById('gcStep2Back');
+      if (backBtn2) backBtn2.style.display = '';
+    }
+
+    var card = document.querySelector('.gc-modal-card');
+    if (card) card.scrollTop = 0;
+  }
+
+  function updateStepIndicators() {
+    if (state.hasCompost) {
+      document.getElementById('gcStep1Ind').textContent = 'Step 1 of 3';
+      document.getElementById('gcStep2Ind').textContent = 'Step 2 of 3';
+      document.getElementById('gcStep3Ind').textContent = 'Step 3 of 3';
+    } else {
+      document.getElementById('gcStep2Ind').textContent = 'Step 1 of 2';
+      document.getElementById('gcStep3Ind').textContent = 'Step 2 of 2';
+    }
+  }
+
+  window.gcNextStep = function() {
+    if (state.currentStep < state.totalSteps) {
+      showStep(state.currentStep + 1);
+    }
+  };
+
+  window.gcPrevStep = function() {
+    if (state.currentStep > 1) {
+      showStep(state.currentStep - 1);
+    }
+  };
+
+  /* ================================================================
+     OPEN / CLOSE MODAL
+     ================================================================ */
+  window.openPledgeModal = function(options) {
+    options = options || {};
+
+    if (options.amount) {
+      var num = parseInt(options.amount);
+      if ([10, 20, 50].indexOf(num) !== -1) {
+        state.pledgeAmount = num;
+        selectPledgeOption(num);
+      } else if (num > 0) {
+        state.pledgeAmount = num;
+        selectPledgeOption('other');
+        var otherInput = document.getElementById('gcModalOtherAmt');
+        if (otherInput) otherInput.value = num;
+      }
+    }
+
+    updateFundingBar();
+    showStep(1);
+    document.getElementById('gcPledgeModal').classList.add('gc-open');
+    document.body.style.overflow = 'hidden';
+  };
+
+  window.gcCloseModal = function() {
+    document.getElementById('gcPledgeModal').classList.remove('gc-open');
+    document.body.style.overflow = '';
+  };
+
+  document.getElementById('gcPledgeModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+      window.gcCloseModal();
+    }
+  });
+
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      window.gcCloseModal();
+    }
+  });
+
+  /* ================================================================
+     SERVICE SELECTION (Step 1)
+     ================================================================ */
+  var serviceOptions = document.querySelectorAll('#gcServiceOptions .gc-service-option');
+  serviceOptions.forEach(function(opt) {
+    opt.addEventListener('click', function() {
+      serviceOptions.forEach(function(o) { o.classList.remove('gc-selected'); });
+      opt.classList.add('gc-selected');
+      state.service = opt.dataset.service;
+    });
+  });
+
+  /* ================================================================
+     PLEDGE SELECTION (Step 2)
+     ================================================================ */
+  var pledgeOptions = document.querySelectorAll('#gcModalPledgeOptions .gc-modal-pledge-option');
+  pledgeOptions.forEach(function(opt) {
+    opt.addEventListener('click', function() {
+      pledgeOptions.forEach(function(o) { o.classList.remove('gc-selected'); });
+      opt.classList.add('gc-selected');
+
+      if (opt.dataset.amount === 'other') {
+        var input = opt.querySelector('input');
+        if (input) setTimeout(function() { input.focus(); }, 100);
+      } else {
+        state.pledgeAmount = parseInt(opt.dataset.amount);
+        updateFundingBar();
+      }
+    });
+  });
+
+  var otherInput = document.getElementById('gcModalOtherAmt');
+  if (otherInput) {
+    otherInput.addEventListener('click', function(e) { e.stopPropagation(); });
+    otherInput.addEventListener('input', function() {
+      state.pledgeAmount = parseInt(this.value) || 0;
+      updateFundingBar();
+    });
+  }
+
+  function selectPledgeOption(amount) {
+    pledgeOptions.forEach(function(o) { o.classList.remove('gc-selected'); });
+    if (amount === 'other') {
+      var otherOpt = document.querySelector('#gcModalPledgeOptions .gc-other');
+      if (otherOpt) otherOpt.classList.add('gc-selected');
+    } else {
+      pledgeOptions.forEach(function(o) {
+        if (o.dataset.amount === String(amount)) o.classList.add('gc-selected');
+      });
+    }
+  }
+
+  // Donate My Savings toggle
+  var donateRow = document.getElementById('gcDonateRow');
+  if (donateRow) {
+    donateRow.addEventListener('click', function(e) {
+      // Don't toggle if clicking the "Learn more" link
+      if (e.target.tagName === 'A') return;
+      this.classList.toggle('gc-checked');
+      state.donateSavings = this.classList.contains('gc-checked');
+      updateDonateText();
+    });
+  }
+
+  /* ================================================================
+     SMS OPT-IN TOGGLE (Step 3)
+     ================================================================ */
+  var optinRow = document.getElementById('gcOptinRow');
+  if (optinRow) {
+    optinRow.addEventListener('click', function() {
+      this.classList.toggle('gc-checked');
+      state.smsOptin = this.classList.contains('gc-checked');
+    });
+  }
+
+  /* ================================================================
+     FORM SUBMISSION
+     ================================================================ */
+  window.gcSubmitPledge = function() {
+    var firstName = document.getElementById('gcFirstName').value.trim();
+    var lastName = document.getElementById('gcLastName').value.trim();
+    var email = document.getElementById('gcEmail').value.trim();
+    var phone = document.getElementById('gcPhone').value.trim();
+    var displayName = document.getElementById('gcDisplayName').value.trim();
+
+    document.querySelectorAll('.gc-form-input').forEach(function(el) {
+      el.classList.remove('gc-error');
+    });
+
+    var errors = [];
+    if (!firstName) {
+      errors.push('First name is required');
+      document.getElementById('gcFirstName').classList.add('gc-error');
+    }
+    if (!lastName) {
+      errors.push('Last name is required');
+      document.getElementById('gcLastName').classList.add('gc-error');
+    }
+    if (!email || !email.match(/^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/)) {
+      errors.push('Valid email is required (e.g. name@example.com)');
+      document.getElementById('gcEmail').classList.add('gc-error');
+    }
+
+    var phoneDigits = phone.replace(/\D/g, '');
+    if (phoneDigits.length === 11 && phoneDigits.charAt(0) === '1') {
+      phoneDigits = phoneDigits.substring(1);
+    }
+    if (!phoneDigits || phoneDigits.length !== 10) {
+      errors.push('Phone must be 10 digits');
+      document.getElementById('gcPhone').classList.add('gc-error');
+    }
+
+    var selectedPledge = document.querySelector('#gcModalPledgeOptions .gc-selected');
+    if (selectedPledge && selectedPledge.dataset.amount === 'other') {
+      var otherVal = document.getElementById('gcModalOtherAmt').value;
+      state.pledgeAmount = parseInt(otherVal) || 0;
+    }
+    if (!state.pledgeAmount || state.pledgeAmount < 1) {
+      errors.push('Please enter a pledge amount');
+    }
+
+    if (errors.length > 0) {
+      var errorEl = document.getElementById('gcModalError');
+      errorEl.textContent = errors.join('. ') + '.';
+      errorEl.style.display = 'block';
+      return;
+    }
+
+    var pledgeOptionMap = {
+      10: '$10/mo — Starter pledge',
+      20: '$20/mo — Most popular',
+      50: '$50/mo — Cleanup Champion',
+    };
+    var choosePledge = pledgeOptionMap[state.pledgeAmount] || 'Choose a different amount';
+
+    var services = [];
+    if (state.service === 'cleaning' || state.service === 'both') services.push('Cleaning');
+    if (state.service === 'composting' || state.service === 'both') services.push('Compost');
+
+    var compostOptIn = (state.service === 'composting' || state.service === 'both')
+      ? 'Yes, add compost for $15 per month'
+      : 'Not Right Now';
+
+    var payload = {
+      'First Name': firstName,
+      'Last Name': lastName,
+      'Display Name': displayName || firstName,
+      'Email': email,
+      'Phone': phone,
+      'Choose Pledge': choosePledge,
+      'Custom Pledge': state.pledgeAmount,
+      'Street Address': (document.getElementById('gcStreetAddress').value || '').trim(),
+      'Block Code': state.blockCode,
+      'Source': window.location.href,
+      'Ambassador Source': ambassadorRef,
+      'SMS Opt In': state.smsOptin,
+      'Services': services,
+      'Compost Opt-In': compostOptIn,
+      blockName: state.blockName,
+      blockRecordId: state.blockRecordId,
+      'Neighborhood Fund Opt In': state.donateSavings,
+      timestamp: new Date().toISOString(),
+    };
+
+    console.log('GC Pledge Modal: submitting', payload);
+
+    var submitBtn = document.getElementById('gcSubmitBtn');
+    submitBtn.classList.add('gc-submitting');
+    submitBtn.textContent = 'Submitting...';
+
+    if (WEBHOOK_URL) {
+      fetch(WEBHOOK_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      .then(function() {
+        handleSuccess(payload);
+      })
+      .catch(function(err) {
+        console.error('GC Pledge Modal: submit error', err);
+        var errorEl = document.getElementById('gcModalError');
+        errorEl.textContent = 'Something went wrong. Please try again.';
+        errorEl.style.display = 'block';
+        submitBtn.classList.remove('gc-submitting');
+        submitBtn.textContent = 'Sign Up';
+      });
+    } else {
+      console.warn('GC Pledge Modal: no WEBHOOK_URL configured, simulating success');
+      setTimeout(function() { handleSuccess(payload); }, 800);
+    }
+  };
+
+  function handleSuccess(payload) {
+    if (REDIRECT_URL) {
+      var url = REDIRECT_URL +
+        '?recordId=' + encodeURIComponent(state.blockRecordId) +
+        '&email=' + encodeURIComponent(payload['Email']) +
+        '&amount=' + payload['Custom Pledge'];
+      window.location.href = url;
+    } else {
+      var steps = document.querySelectorAll('.gc-modal-step');
+      steps.forEach(function(s) { s.style.display = 'none'; });
+      document.getElementById('gcStepSuccess').style.display = 'block';
+    }
+  }
+
+  /* ================================================================
+     INITIALIZE
+     ================================================================ */
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() {
+      setTimeout(init, 1000);
+    });
+  } else {
+    setTimeout(init, 1000);
+  }
+
+  // Only set glitterRecord if the helper script hasn't already populated it.
+  // On block detail pages, the helper script scrapes #blockdata and sets this
+  // first with all 25+ fields. On non-record pages (homepage), fall back to
+  // Softr template tags.
+  if (!window.glitterRecord) {
+    window.glitterRecord = {
+      'Block Code': '{{Block Code}}',
+      'Block Name (Full)': '{{Block Name (Friendly)}}',
+      'Record ID': '{{Record ID}}',
+      'Cleanup Area': '{{Cleanup Area}}',
+      'Compost Pilot': '{{Compost Pilot}}',
+      'Total Pledges': '{{Total Pledges}}',
+      'Per Week Cost': '{{Per Week Cost}}',
+      'Gap to Next Funding Level': '{{Gap to Next Funding Level}}',
+    };
+  }
+
+  // CTA Interceptor
+  function checkForPledgeHash() {
+    if (window.location.hash === '#new-pledge') {
+      history.replaceState(null, '', window.location.pathname + window.location.search);
+      if (window.openPledgeModal) {
+        window.openPledgeModal({});
+      }
+    }
+  }
+  window.addEventListener('hashchange', checkForPledgeHash);
+  checkForPledgeHash();
+})();
+</script>
