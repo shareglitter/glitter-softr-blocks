@@ -51,6 +51,7 @@ const ALL = [
   rot("social_share", "Tag @shareglitter!", { "CTA Label": "Facebook | Instagram | Nextdoor", "CTA URL": "https://facebook.com/shareglitter | instagram.com/shareglitter | https://nextdoor.com/x" }),
   rot("satisfaction", "How'd we do today?", { "CTA Label": "Reply", "CTA URL": "mailto:hello@shareglitter.com?subject=Cleaning on {block_name}" }),
   rot("frequency_upgrade", "Want your block cleaned {next_frequency}? Increase your pledge.", { "CTA Label": "Increase pledge", "CTA URL": "{block_page_url}" }),
+  rot("date_and_code", "Cleaned {cleaning_date}. Your code is {referral_code}.", { "CTA Label": "Share", "CTA URL": "{share_url}" }),
   rot("bad_pairs", "x", { "CTA Label": "One | Two", "CTA URL": "https://a.example" }),
   rot("cleaner_spotlight", "Cleaned by {cleaner_first_name}, a neighbor.", {}),
   L("recL_m6", { Key: "milestone_6mo", "Line Text": "Thank you for six months.", Mode: { name: "Milestone" }, Active: true, "Milestone Months": 6 }),
@@ -104,5 +105,7 @@ const only = k => s => fill(s).replace('forceKeys: ["*"]', `forceKeys: ${JSON.st
   { const usable = ALL.filter(l => l.getCellValue("Key") && l.getCellValue("Line Text")).length;
     console.assert(r.sent && r.sent.length === usable * 2 && r.sent.every(m => ["sid@test.com", "prez@test.com"].includes(m.To)) && r.writes.length === 0
       && /^\[1\/\d+\] /.test(r.sent[0].TemplateModel.test_banner.outcome) && new Set(r.sent.map(m => m.TemplateModel.test_banner.line_key)).size >= usable - 3, "FAIL 19: " + (r.sent && r.sent.length)); }
+  r = await run("20. {cleaning_date}, {referral_code} and {share_url} placeholders", { lines: ALL, patch: only(["date_and_code"]) });
+  { const sec = r.sent[0].TemplateModel.secondary; console.assert(sec && sec.text === "Cleaned Friday, September 18. Your code is DARRELL-LG7." && sec.ctas[0].url.startsWith("https://gltr.ly/1000SBouvier?code=DARRELL-LG7&utm_source="), "FAIL 20: " + JSON.stringify(sec)); }
   console.log("\nharness done");
 })();

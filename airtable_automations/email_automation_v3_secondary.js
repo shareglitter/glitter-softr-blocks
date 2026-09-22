@@ -16,7 +16,8 @@
 //   CTA Label with three URLs in CTA URL, pipe-separated in the same order.
 // - mailto: CTAs (the "Reply" button) get their placeholders URL-encoded.
 // - New placeholders: {year}, {cleaning_count_this_year},
-//   {cleaning_count_this_year_ordinal}, {block_frequency}, {next_frequency}.
+//   {cleaning_count_this_year_ordinal}, {block_frequency}, {next_frequency},
+//   {cleaning_date}, {referral_code}, {share_url}, {cleaner_name_in_greeting}.
 //   {next_frequency} is blank for blocks already cleaned every week, so a
 //   line that uses it drops for those blocks on its own.
 //
@@ -508,6 +509,10 @@ function buildForSubscriber(r, lines) {
         display_name: r.subscriberName,
         block_name: blockName,
         block_page_url: blockPageUrl,
+        cleaning_date: cleaningDate,                       // "Friday, September 18"
+        cleaner_name_in_greeting: cleanerFirstName,        // same name the greeting uses; no consent gate
+        referral_code: r.referralCode || null,             // e.g. SUNNY-9IH
+        share_url: buildShare(blockPageUrl, blockName, r.referralCode)?.url || null,   // personal ?code= link
         year: thisYear,
         block_frequency: blockFrequency,
         next_frequency: nextFrequency,

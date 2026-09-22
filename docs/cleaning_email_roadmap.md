@@ -160,7 +160,7 @@ Other differences from V2 worth knowing:
 - Bag totals under 1 and cleaning counts of 0 count as missing data, so the line drops instead of saying "about 0 bags".
 - `cleanerConsentField` is `"OK to Name in Emails"`, a checkbox on Cleaners (added 2026-09-18 once several cleaners had consented). `{cleaner_first_name}` is only available to a line when the cleaner who did that cleaning has it checked; otherwise `cleaner_spotlight` drops for that email. The field must exist before the script is pasted, because asking Airtable for a field name that does not exist fails the whole run.
 
-`node airtable_automations/tests/harness_v3.js` runs the script against a mocked base and mocked Postmark through twenty-one scenarios (allowlist, table tour, nobody-eligible blocks, multi-button rows, mailto buttons, this-year counts, weekly-block drop, forced lines, dropped placeholders, quiet hours, live write-back). Run it after every script edit.
+`node airtable_automations/tests/harness_v3.js` runs the script against a mocked base and mocked Postmark through twenty-two scenarios (allowlist, table tour, nobody-eligible blocks, multi-button rows, mailto buttons, this-year counts, weekly-block drop, forced lines, dropped placeholders, quiet hours, live write-back). Run it after every script edit.
 
 **Still to do at go-live:** the morning catch-up script needs the same module. Port it once the copy and code have settled in testing, then apply the secrets change to it too.
 
@@ -175,6 +175,10 @@ Placeholders use single braces so they never collide with Postmark's `{{ }}`. Th
 | `{display_name}` | Subscriber display name | Subscribers |
 | `{block_name}` | Friendly block name | Blocks |
 | `{block_page_url}` | Block page URL, usable as a CTA URL | Blocks |
+| `{cleaning_date}` | "Friday, September 18", the same date the greeting shows | Cleaning Log |
+| `{referral_code}` | The subscriber's own code, e.g. `SUNNY-9IH` | Subscribers → `Referral Code` |
+| `{share_url}` | Their personal `?code=` block link, usable as a CTA URL | derived |
+| `{cleaner_name_in_greeting}` | Cleaner's first name **without** the consent gate, i.e. what the greeting already prints. Prefer `{cleaner_first_name}` for anything that talks about the cleaner as a person. | Cleaners |
 | `{year}` | Current year in Eastern time | clock |
 | `{cleaning_count_this_year}` / `{…_ordinal}` | Cleanings on this block this calendar year, since the subscriber's start | Cleaning Log + `Member Since` |
 | `{cleaning_count}` / `{cleaning_count_ordinal}` | Same, all time since the subscriber's start | Cleaning Log + `Member Since` |
