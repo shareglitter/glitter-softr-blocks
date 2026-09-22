@@ -100,5 +100,9 @@ const only = k => s => fill(s).replace('forceKeys: ["*"]', `forceKeys: ${JSON.st
   console.assert(!r.sent[0].TemplateModel.secondary && /no data for \{next_frequency\}/.test(r.sent[0].TemplateModel.test_banner.outcome), "FAIL 17b: " + r.sent[0].TemplateModel.test_banner.outcome);
   r = await run("18. label/url counts differ → dropped, not half-rendered", { lines: ALL, patch: only(["bad_pairs"]) });
   console.assert(!r.sent[0].TemplateModel.secondary && /2 CTA label/.test(r.sent[0].TemplateModel.test_banner.outcome), "FAIL 18");
+  r = await run("19. tour: sendEveryLine sends one email per usable row, testers only, no writes", { lines: ALL, patch: s => fill(s).replace("sendEveryLine: false", "sendEveryLine: true") });
+  { const usable = ALL.filter(l => l.getCellValue("Key") && l.getCellValue("Line Text")).length;
+    console.assert(r.sent && r.sent.length === usable * 2 && r.sent.every(m => ["sid@test.com", "prez@test.com"].includes(m.To)) && r.writes.length === 0
+      && /^\[1\/\d+\] /.test(r.sent[0].TemplateModel.test_banner.outcome) && new Set(r.sent.map(m => m.TemplateModel.test_banner.line_key)).size >= usable - 3, "FAIL 19: " + (r.sent && r.sent.length)); }
   console.log("\nharness done");
 })();

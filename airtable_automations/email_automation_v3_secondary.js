@@ -52,6 +52,10 @@ const TEST = {
     //   ["review", "referral"] random among these keys
     //   []                    the real rules: Active checkbox, date window, milestones, one-active guardrail
     forceKeys: ["*"],
+    // true = one run sends EVERY usable row as its own email (a tour of the whole table
+    // in one Test click), each to every test recipient. forceKeys is ignored.
+    // With 20 rows and 2 recipients that is 40 emails, so set recipients to one address first.
+    sendEveryLine: false,
     // true = skip test sends during quiet hours, the way live sends are held back
     respectQuietHours: true,
     // true = when nobody on the block is eligible (live would send nothing), still send the
@@ -459,7 +463,12 @@ if (emailRecipients.length === 0) {
 // ── Pick the secondary line ─────────────────────────────────
 let lines = await loadSecondaryLines();
 let selectionNote = "real rules (Active checkbox)";
-if (IS_TEST && TEST.forceKeys.length > 0) {
+let variants = null;   // test tour: one `lines` object per row
+if (IS_TEST && TEST.sendEveryLine) {
+    variants = lines.usable.map(r => ({ ...lines, rotation: r, milestones: [], problem: "" }));
+    if (variants.length === 0) variants = [{ ...lines, rotation: null, milestones: [], problem: "no usable rows in the table" }];
+    selectionNote = `tour of every row (${variants.length}), Active ignored`;
+} else if (IS_TEST && TEST.forceKeys.length > 0) {
     const pool = TEST.forceKeys.includes("*")
         ? lines.usable
         : lines.usable.filter(r => TEST.forceKeys.includes(r.getCellValue(SECONDARY_CONFIG.f.key)));
@@ -469,7 +478,7 @@ if (IS_TEST && TEST.forceKeys.length > 0) {
 }
 
 // ── Block stats, only when a candidate line needs them ──────
-const candidateLines = [lines.rotation, ...lines.milestones].filter(Boolean);
+const candidateLines = (variants || [lines]).flatMap(v => [v.rotation, ...v.milestones]).filter(Boolean);
 const needsCounts = candidateLines.some(r =>
     /\{(cleaning_count|cleaning_count_ordinal|cleaning_count_this_year|cleaning_count_this_year_ordinal|block_bags_total)\}/.test(r.getCellValue(SECONDARY_CONFIG.f.text) || ""));
 
@@ -491,7 +500,7 @@ const yearOf = (d) => Number(new Date(d).toLocaleDateString("en-US", { year: "nu
 const thisYear = eastern.getFullYear();
 
 // ── Build one TemplateModel per subscriber ──────────────────
-function buildForSubscriber(r) {
+function buildForSubscriber(r, lines) {
     const startD = r.startDate ? new Date(r.startDate) : null;
     const myLogs = startD ? blockLogs.filter(l => new Date(l.getCellValue("Date and Time")) >= startD) : [];
     const myLogsThisYear = myLogs.filter(l => yearOf(l.getCellValue("Date and Time")) === thisYear);
@@ -546,14 +555,15 @@ const messages = [];
 const sentSecondaries = [];
 
 console.log(`\nSecondary line selection: ${selectionNote}`);
-for (const r of targets) {
-    const { model, sec, outcome } = buildForSubscriber(r);
+const runs = variants ? variants.map((v, i) => ({ lines: v, label: `[${i + 1}/${variants.length}] ` })) : [{ lines, label: "" }];
+for (const r of targets) for (const run of runs) {
+    const { model, sec, outcome } = buildForSubscriber(r, run.lines);
     const secondaryKey = sec.dropped === undefined ? sec.key : "none";
 
     if (IS_TEST) {
         model.test_banner = {
             line_key: secondaryKey,
-            outcome: outcome,
+            outcome: run.label + outcome,
             selection: selectionNote,
             audience: audienceNote,
             as_name: r.subscriberName,

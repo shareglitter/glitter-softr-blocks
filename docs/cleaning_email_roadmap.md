@@ -140,6 +140,7 @@ Built as one file: `airtable_automations/email_automation_v3_secondary.js`. It i
 |---|---|---|
 | Recipients | only `TEST.recipients` (hard allowlist, 1 to 3 addresses) | the block's eligible subscribers |
 | Rendered as | the first `TEST.maxPreviewsPerLog` eligible subscribers of the cleaned block | each subscriber |
+| Tour of the whole table | `TEST.sendEveryLine: true` sends every usable row as its own email in one run, banner marked `[n/N]`, so one Test click previews all lines. Set `recipients` to one address first or the count doubles. | n/a |
 | Nobody eligible on the block | still sends the testers a preview, rendered as the first linked subscriber, with the banner saying live would send nothing (`TEST.previewWhenNoneEligible`, on by default) | sends nothing |
 | Template | alias `cleaning-notification-test` | id `45583435` |
 | Line choice | `TEST.forceKeys`: `["*"]` random tour of every row, a list of keys, or `[]` for the real rules | Active checkbox, date window, milestones, one-active guardrail |
@@ -159,7 +160,7 @@ Other differences from V2 worth knowing:
 - Bag totals under 1 and cleaning counts of 0 count as missing data, so the line drops instead of saying "about 0 bags".
 - `cleanerConsentField` is `"OK to Name in Emails"`, a checkbox on Cleaners (added 2026-09-18 once several cleaners had consented). `{cleaner_first_name}` is only available to a line when the cleaner who did that cleaning has it checked; otherwise `cleaner_spotlight` drops for that email. The field must exist before the script is pasted, because asking Airtable for a field name that does not exist fails the whole run.
 
-`node airtable_automations/tests/harness_v3.js` runs the script against a mocked base and mocked Postmark through twenty scenarios (allowlist, nobody-eligible blocks, multi-button rows, mailto buttons, this-year counts, weekly-block drop, forced lines, dropped placeholders, quiet hours, live write-back). Run it after every script edit.
+`node airtable_automations/tests/harness_v3.js` runs the script against a mocked base and mocked Postmark through twenty-one scenarios (allowlist, table tour, nobody-eligible blocks, multi-button rows, mailto buttons, this-year counts, weekly-block drop, forced lines, dropped placeholders, quiet hours, live write-back). Run it after every script edit.
 
 **Still to do at go-live:** the morning catch-up script needs the same module. Port it once the copy and code have settled in testing, then apply the secrets change to it too.
 
