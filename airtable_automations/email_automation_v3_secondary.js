@@ -1,5 +1,5 @@
 // ============================================================
-// Airtable Automation Script Block — V3 (rotating secondary line)
+// Airtable Automation Script Block — V3.1 (rotating secondary line)
 // Sends cleaning notification emails via Postmark
 //
 // WHAT CHANGED FROM V2:
@@ -10,6 +10,15 @@
 //   nothing is written back to Airtable, and a TEST banner is added.
 // - Postmark token comes from an automation Secret, not the source.
 // - Subscribers are loaded in one query instead of one query each.
+//
+// WHAT CHANGED IN V3.1 (president's test-ideas doc, 2026-09-22):
+// - A row can carry several buttons: "Facebook | Instagram | Nextdoor" in
+//   CTA Label with three URLs in CTA URL, pipe-separated in the same order.
+// - mailto: CTAs (the "Reply" button) get their placeholders URL-encoded.
+// - New placeholders: {year}, {cleaning_count_this_year},
+//   {cleaning_count_this_year_ordinal}, {block_frequency}, {next_frequency}.
+//   {next_frequency} is blank for blocks already cleaned every week, so a
+//   line that uses it drops for those blocks on its own.
 //
 // SETUP (test automation):
 // 1. New automation, trigger "When record matches conditions" on
@@ -126,15 +135,21 @@ async function loadSecondaryLines() {
 }
 
 // Replace {placeholder} tokens. A placeholder with no data drops the whole line
-// (better no line than "your th cleaning").
-function fillPlaceholders(text, ctx) {
+// (better no line than "your th cleaning"). `encode` is applied to each value
+// when filling a mailto: URL, so a block name survives as a subject line.
+function fillPlaceholders(text, ctx, encode) {
     const missing = [];
     const out = String(text || "").replace(/\{([a-z_]+)\}/g, (m, key) => {
         const v = ctx[key];
         if (v === undefined || v === null || v === "") { missing.push(key); return m; }
-        return String(v);
+        return encode ? encode(String(v)) : String(v);
     });
     return { missing, out };
+}
+
+// "Facebook | Instagram | Nextdoor" → ["Facebook", "Instagram", "Nextdoor"]
+function splitPipes(v) {
+    return String(v || "").split("|").map(x => x.trim()).filter(Boolean);
 }
 
 function appendUtm(url, key) {
@@ -162,17 +177,23 @@ function renderLine(rec, ctx) {
     const t = fillPlaceholders(rec.getCellValue(c.f.text), ctx);
     if (t.missing.length) return { key, dropped: `no data for {${t.missing.join("}, {")}}` };
 
-    let cta = null;
-    const rawUrl = rec.getCellValue(c.f.ctaUrl);
-    const label = (rec.getCellValue(c.f.ctaLabel) || "").trim();
-    if (rawUrl && label) {
-        const u = fillPlaceholders(rawUrl, ctx);
-        if (u.missing.length) return { key, dropped: `no data for {${u.missing.join("}, {")}} in CTA URL` };
-        let url = u.out;
-        if (!/^(https?:|mailto:)/i.test(url)) url = "https://" + url;
-        cta = { label: label, url: url.startsWith("mailto:") ? url : appendUtm(url, key) };
+    // Buttons. Labels and URLs are pipe-separated lists in the same order; a row
+    // with a label but no URL (or the reverse) renders as text only.
+    const labels = splitPipes(rec.getCellValue(c.f.ctaLabel));
+    const urls = splitPipes(rec.getCellValue(c.f.ctaUrl));
+    const ctas = [];
+    if (labels.length && urls.length) {
+        if (labels.length !== urls.length) return { key, dropped: `${labels.length} CTA label(s) but ${urls.length} CTA URL(s); they must pair up` };
+        for (let i = 0; i < labels.length; i++) {
+            const isMailto = /^mailto:/i.test(urls[i]);
+            const u = fillPlaceholders(urls[i], ctx, isMailto ? encodeURIComponent : null);
+            if (u.missing.length) return { key, dropped: `no data for {${u.missing.join("}, {")}} in CTA URL` };
+            let url = u.out;
+            if (!/^(https?:|mailto:)/i.test(url)) url = "https://" + url;
+            ctas.push({ label: labels[i], url: isMailto ? url : appendUtm(url, key) });
+        }
     }
-    return { key, record: rec, label: label, model: { text: t.out, cta: cta } };
+    return { key, record: rec, label: labels[0] || "", model: { text: t.out, ctas: ctas } };
 }
 
 // Milestone lines override the rotation line for that one recipient, once each.
@@ -307,7 +328,7 @@ const blockId = blockLinks[0].id;
 
 const blocksTable = base.getTable("Blocks");
 const blockRecord = await blocksTable.selectRecordAsync(blockId, {
-    fields: ["Block Name (Friendly)", "Subscribers", "Block Page URL"]
+    fields: ["Block Name (Friendly)", "Subscribers", "Block Page URL", "Frequency Label (Lookup)", "Next Frequency Label"]
 });
 if (!blockRecord) {
     console.log("Block record not found. Exiting.");
@@ -319,6 +340,9 @@ let blockPageUrl = blockRecord.getCellValue("Block Page URL") || "";
 if (blockPageUrl && !blockPageUrl.startsWith("http")) {
     blockPageUrl = "https://" + blockPageUrl;
 }
+// "Every Week" blocks have no Next Frequency Label, so {next_frequency} lines drop for them.
+const blockFrequency = blockRecord.getCellValueAsString("Frequency Label (Lookup)").trim().toLowerCase();
+const nextFrequency = blockRecord.getCellValueAsString("Next Frequency Label").trim().toLowerCase();
 const subscriberLinks = blockRecord.getCellValue("Subscribers");
 if (!subscriberLinks || subscriberLinks.length === 0) {
     console.log(`No subscribers linked to block "${blockName}". Exiting.`);
@@ -447,7 +471,7 @@ if (IS_TEST && TEST.forceKeys.length > 0) {
 // ── Block stats, only when a candidate line needs them ──────
 const candidateLines = [lines.rotation, ...lines.milestones].filter(Boolean);
 const needsCounts = candidateLines.some(r =>
-    /\{(cleaning_count|cleaning_count_ordinal|block_bags_total)\}/.test(r.getCellValue(SECONDARY_CONFIG.f.text) || ""));
+    /\{(cleaning_count|cleaning_count_ordinal|cleaning_count_this_year|cleaning_count_this_year_ordinal|block_bags_total)\}/.test(r.getCellValue(SECONDARY_CONFIG.f.text) || ""));
 
 let blockLogs = [];
 if (needsCounts) {
@@ -463,18 +487,26 @@ const bagsOf = (r) => {
     return SECONDARY_CONFIG.litterToBags[lvl] || 0;
 };
 const blockBagsTotal = Math.round(blockLogs.reduce((s, r) => s + bagsOf(r), 0));
+const yearOf = (d) => Number(new Date(d).toLocaleDateString("en-US", { year: "numeric", timeZone: "America/New_York" }));
+const thisYear = eastern.getFullYear();
 
 // ── Build one TemplateModel per subscriber ──────────────────
 function buildForSubscriber(r) {
     const startD = r.startDate ? new Date(r.startDate) : null;
     const myLogs = startD ? blockLogs.filter(l => new Date(l.getCellValue("Date and Time")) >= startD) : [];
+    const myLogsThisYear = myLogs.filter(l => yearOf(l.getCellValue("Date and Time")) === thisYear);
     const ctx = {
         display_name: r.subscriberName,
         block_name: blockName,
         block_page_url: blockPageUrl,
+        year: thisYear,
+        block_frequency: blockFrequency,
+        next_frequency: nextFrequency,
         cleaner_first_name: cleanerNameable ? cleanerFirstName : null,
         cleaning_count: needsCounts && startD && myLogs.length > 0 ? myLogs.length : null,
         cleaning_count_ordinal: needsCounts && startD && myLogs.length > 0 ? ordinal(myLogs.length) : null,
+        cleaning_count_this_year: needsCounts && startD && myLogsThisYear.length > 0 ? myLogsThisYear.length : null,
+        cleaning_count_this_year_ordinal: needsCounts && startD && myLogsThisYear.length > 0 ? ordinal(myLogsThisYear.length) : null,
         block_bags_total: needsCounts && blockBagsTotal >= 1 ? blockBagsTotal : null,
         tenure_months: startD ? monthsBetween(startD, now) : null,
         milestonesSent: r.milestonesSent,
@@ -503,7 +535,7 @@ function buildForSubscriber(r) {
         }
     } else {
         model.secondary = sec.model;
-        outcome = `"${sec.key}"${sec.milestoneTag ? ` (milestone, ${sec.milestoneTag})` : ""}${sec.model.cta ? "" : " (text only, no CTA)"}`;
+        outcome = `"${sec.key}"${sec.milestoneTag ? ` (milestone, ${sec.milestoneTag})` : ""}${sec.model.ctas.length ? ` (${sec.model.ctas.length} button${sec.model.ctas.length > 1 ? "s" : ""})` : " (text only, no CTA)"}`;
     }
     console.log(`  ${r.subscriberName}: ${outcome}`);
     return { model, sec, outcome };

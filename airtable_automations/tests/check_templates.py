@@ -17,6 +17,8 @@ def check(path):
     text, stack, problems = path.read_text(), [], []
     for m in TAG.finditer(text):
         kind, name = m.group(1), m.group(2)
+        if kind == "#" and name.startswith("each "):
+            name = "each"   # Postmark loop: {{#each list}} ... {{/each}}
         line = text.count("\n", 0, m.start()) + 1
         if not NAME.match(name):
             problems.append(f"line {line}: not a valid tag: {m.group(0)}")

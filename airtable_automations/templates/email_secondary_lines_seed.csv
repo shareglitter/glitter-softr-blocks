@@ -1,15 +1,23 @@
 Key,Mode,Line Text,CTA Label,CTA URL,Milestone Months,Requires Fields,Notes
-referral,Rotation,"Know a neighbor who'd want this for their block? Forward this email, or send them your personal link.",Forward this email,,,,"Renders as the forward section: Line Text is the sentence, CTA Label is the button label, CTA URL is ignored (the link is always the subscriber's personal ?code= link)."
-satisfaction,Rotation,How'd we do? Reply and let us know.,,,,,Depends on Reply-To reaching a monitored inbox.
-impact_stat,Rotation,This was your {cleaning_count_ordinal} cleaning. Your block has collected about {block_bags_total} bags so far.,See your block page,{block_page_url},,"cleaning_count, block_bags_total","Bag total is an estimate from the Trash select. Cleaning count uses Member Since, which is wrong for bulk-imported members."
-services_waitlist,Rotation,"Curious about compost, leaves, weeds, or snow? Join the waitlist.",Join the waitlist,,,,TODO: CTA URL (waitlist form). Until a URL is set this renders as text only.
-trash_can,Rotation,Ask about adding a trash can to your block.,Ask us,,,,TODO: CTA URL (form or mailto:).
-impact_fund,Rotation,Want to help a block that needs support? Chip in to the Impact Fund.,Impact Fund,,,,TODO: CTA URL.
-ambassador,Rotation,Want to help organize your block or bring in neighbors? Let us know.,Let us know,,,,TODO: CTA URL.
-review,Rotation,Enjoying Glitter? A quick Google review helps other blocks find us.,Leave a review,,,,TODO: CTA URL (Google review link).
-cleaner_spotlight,Rotation,"Your block was cleaned by {cleaner_first_name}, a neighbor earning a living wage doing it.",,,,cleaner_first_name,Drops for everyone until Cleaners has an 'OK to Name in Emails' checkbox and the script's cleanerConsentField points at it.
-social_share,Rotation,Tag @shareglitter if you post about your clean block.,,,,,
-frequency_upgrade,Rotation,Want your block cleaned twice a month instead of once?,Ask about upgrading,,,,"TODO: CTA URL. Shows to everyone, including blocks already at higher frequency."
-sponsor_block,Rotation,Know a block that could use this but can't afford it? Sponsor a cleaning for them.,Sponsor a block,,,,TODO: CTA URL.
+referral,Rotation,"Know a neighbor who'd want Glitter cleanings for their block? Forward this email, or send them your personal link.",Forward this email,,,,Renders as the forward section. CTA Label is the button label; CTA URL is ignored (the link is always the subscriber's personal ?code= link).
+satisfaction,Rotation,How'd we do today? Reply and let us know if we hit the mark for your cleaning.,Reply,mailto:hello@shareglitter.com?subject=Cleaning on {block_name},,,Reply-To must reach a monitored inbox.
+impact_stat,Rotation,This is your {cleaning_count_this_year_ordinal} cleaning in {year}. Your block has collected about {block_bags_total} bags so far.,See your block page,{block_page_url},,"cleaning_count_this_year, block_bags_total",Bag total is an estimate from the Trash select. Drops for anyone with no countable cleaning this year.
+services_waitlist,Rotation,"Curious about our new services like block-wide composting, or leaf, weed, and snow removal? Join the waitlist for one or more!",See New Services,,,,TODO: CTA URL. Text only until set.
+trash_can,Rotation,Ask about adding a trash can to your block that Glitter will maintain each week.,Add a Trashcan,mailto:hello@shareglitter.com?subject=Trash can for {block_name},,,Doc says Replies / signups; a reply mailto until there is a form.
+impact_fund,Rotation,Want to help a block that needs cleaning support? Chip in to the Impact Fund.,Join Impact Fund,,,,TODO: CTA URL.
+ambassador,Rotation,Want to help organize your block or bring in more neighbors to pledge? Let us know.,Reply,mailto:hello@shareglitter.com?subject=Helping out on {block_name},,,
+door_hangers,Rotation,Want to let your neighbors know about Glitter and raise more funds? Request door hangers!,Get free doorhangers,,,,TODO: CTA URL (Outreach Materials form).
+review,Rotation,Enjoying Glitter? A quick Google review helps other blocks find us.,Review us on Google,,,,TODO: CTA URL (Google review link).
+cleaner_spotlight,Rotation,"Your block was cleaned by {cleaner_first_name}, a neighbor earning a living wage doing it. Learn more about who we hire.",Watch 'Meet our Cleaners',,,cleaner_first_name,Drops unless the cleaner has 'OK to Name in Emails' checked. TODO: video URL.
+ambassador_booking,Rotation,Want help talking to neighbors about Glitter? Book a free ambassador door-knocking session at your convenience.,Book an Ambassador,,,,TODO: CTA URL (booking link).
+social_share,Rotation,Share what we do for your block and tag @shareglitter to help others learn about us!,Facebook | Instagram | Nextdoor,https://www.facebook.com/shareglitter | https://www.instagram.com/shareglitter | https://nextdoor.com,,,"Three buttons. Confirm the three URLs; pipe-separated, same order as the labels."
+frequency_upgrade,Rotation,Want your block cleaned {next_frequency}? Increase your pledge.,Increase pledge,{block_page_url},,next_frequency,Drops on its own for blocks already at Every Week (Next Frequency Label is blank there).
+snow_waitlist,Rotation,Show your interest in adding snow removal service to your block that Glitter will do seasonally. Join the waitlist!,Join snow removal waitlist,,,,TODO: CTA URL.
+leaves_waitlist,Rotation,Show your interest in adding leaf removal service to your block that Glitter will do seasonally. Join the waitlist!,Join leaf removal waitlist,,,,TODO: CTA URL.
+weeding_waitlist,Rotation,Show your interest in adding weed removal service to your block that Glitter will do seasonally. Join the waitlist!,Join weed removal waitlist,,,,TODO: CTA URL.
+sponsor_block,Rotation,Know a block that could use this but can't afford it? Sponsor a cleaning for them by making a pledge on that block.,Pledge on a new block here,https://www.shareglitter.com,,,
+request_sign,Rotation,Want to show off that you are a Glitter block and raise more funds? Request a sign!,Request free sign,,,,TODO: CTA URL.
+testimonial,Rotation,Has Glitter made a difference on your block? Tell us about it in a sentence or two.,Share your story,mailto:hello@shareglitter.com?subject=My Glitter story ({block_name}),,,A reply mailto until there is a form.
+service_poll,Rotation,What should Glitter offer next near you? Tell us your ideas!,Tell us your ideas,,,,TODO: CTA URL (poll/form).
 milestone_6mo,Milestone,Thank you for six months of clean blocks.,,,6,tenure_months,Keep inactive until Member Since is trustworthy for early members.
-milestone_12mo,Milestone,Thank you for a year of clean blocks.,,,12,tenure_months,Keep inactive until Member Since is trustworthy for early members.
+milestone_12mo,Milestone,Thank you for a year of clean blocks.,,,12,tenure_months,Doc idea 13. Keep inactive until Member Since is trustworthy for early members.

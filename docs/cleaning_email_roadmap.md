@@ -154,12 +154,12 @@ Other differences from V2 worth knowing:
 - The Postmark token is read with `input.secret("POSTMARK_SERVER_TOKEN")` (Airtable automation Secrets), so this file is safe to commit.
 - Subscribers load in one query per 100 links instead of one query each, which removes the 30-query ceiling for big blocks.
 - `Milestones Sent` options are `6 months` / `12 months` as created in Airtable, not `6mo` / `12mo`.
-- A CTA renders only when the row has **both** a label and a URL. Rows whose URL is still TODO send as text only.
+- A row renders buttons only when it has **both** labels and URLs. Rows whose URL is still TODO send as text only. Since V3.1 (2026-09-22) a row can carry several buttons: pipe-separate the labels and the URLs in the same order (`Facebook | Instagram | Nextdoor`). Mismatched counts drop the line rather than half-render it. A `mailto:` URL (the doc's Reply buttons) gets its placeholders URL-encoded and no UTM.
 - The share link gets no UTM: it is the subscriber's personal link, it is printed for copy/paste, and `?code=` already carries attribution.
 - Bag totals under 1 and cleaning counts of 0 count as missing data, so the line drops instead of saying "about 0 bags".
 - `cleanerConsentField` is `"OK to Name in Emails"`, a checkbox on Cleaners (added 2026-09-18 once several cleaners had consented). `{cleaner_first_name}` is only available to a line when the cleaner who did that cleaning has it checked; otherwise `cleaner_spotlight` drops for that email. The field must exist before the script is pasted, because asking Airtable for a field name that does not exist fails the whole run.
 
-`node airtable_automations/tests/harness_v3.js` runs the script against a mocked base and mocked Postmark through thirteen scenarios (allowlist, nobody-eligible blocks, forced lines, dropped placeholders, quiet hours, live write-back). Run it after every script edit.
+`node airtable_automations/tests/harness_v3.js` runs the script against a mocked base and mocked Postmark through twenty scenarios (allowlist, nobody-eligible blocks, multi-button rows, mailto buttons, this-year counts, weekly-block drop, forced lines, dropped placeholders, quiet hours, live write-back). Run it after every script edit.
 
 **Still to do at go-live:** the morning catch-up script needs the same module. Port it once the copy and code have settled in testing, then apply the secrets change to it too.
 
@@ -167,49 +167,56 @@ Other differences from V2 worth knowing:
 
 ### 6. Placeholder catalog
 
-Placeholders use single braces so they never collide with Postmark's `{{ }}`. The script fills them before the payload goes out, so Postmark only ever sees final text.
+Placeholders use single braces so they never collide with Postmark's `{{ }}`. The script fills them before the payload goes out, so Postmark only ever sees final text. They work in Line Text and in CTA URL.
 
-| Placeholder | Value | Source | Needed by ideas |
-|---|---|---|---|
-| `{display_name}` | Subscriber display name | already in script | any |
-| `{block_name}` | Friendly block name | already in script | any |
-| `{block_page_url}` | Block page URL (usable in CTA URL too) | already in script | 1, 3 |
-| `{cleaner_first_name}` | Cleaner's first name, only if consent checkbox is on | Cleaners table + new consent field | 9 |
-| `{cleaning_count}` | Number of cleanings on this block since the subscriber's start date | Cleaning Log + subscription start | 3 |
-| `{cleaning_count_ordinal}` | Same, as "12th" | derived | 3 |
-| `{block_bags_total}` | Total bags collected on this block (real field or litter-level estimate) | Cleaning Log | 3 |
-| `{tenure_months}` | Whole months since subscription start | subscription start | 13 |
+| Placeholder | Value | Source |
+|---|---|---|
+| `{display_name}` | Subscriber display name | Subscribers |
+| `{block_name}` | Friendly block name | Blocks |
+| `{block_page_url}` | Block page URL, usable as a CTA URL | Blocks |
+| `{year}` | Current year in Eastern time | clock |
+| `{cleaning_count_this_year}` / `{…_ordinal}` | Cleanings on this block this calendar year, since the subscriber's start | Cleaning Log + `Member Since` |
+| `{cleaning_count}` / `{cleaning_count_ordinal}` | Same, all time since the subscriber's start | Cleaning Log + `Member Since` |
+| `{block_bags_total}` | Total bags on this block, estimated from the `Trash` select until a `Bags` field exists | Cleaning Log |
+| `{cleaner_first_name}` | Cleaner's first name, only when `OK to Name in Emails` is checked | Cleaners |
+| `{block_frequency}` | Current cadence, lower-case: "every other week" | Blocks → `Frequency Label (Lookup)` |
+| `{next_frequency}` | The next cadence up: "3 out of 4 weeks". **Blank for Every Week blocks**, so a line using it drops for them, which answers the doc's "what if already weekly" comment | Blocks → `Next Frequency Label` |
+| `{tenure_months}` | Whole months since `Member Since` (drives milestones, rarely printed) | Subscribers |
 
 Rule: if a line references a placeholder the script can't fill for that recipient, the line is dropped for that recipient (email still sends, just without the secondary). This is what makes it safe to turn on the impact-stat line before every subscriber has a clean start date.
 
 ---
 
-### 7. Seed rows (from the president's doc)
+### 7. Seed rows (from the president's doc, updated 2026-09-22)
+
+The canonical list is `airtable_automations/templates/email_secondary_lines_seed.csv` (22 rows). The table in Airtable was seeded from the 14-row version on 2026-09-18; the 8 rows the doc added since (`door_hangers`, `ambassador_booking`, `snow_waitlist`, `leaves_waitlist`, `weeding_waitlist`, `request_sign`, `testimonial`, `service_poll`) and the reworded rows have to be entered by hand.
 
 | Key | Mode | Line Text | CTA Label | CTA URL |
 |---|---|---|---|---|
-| `referral` | Rotation | Know a neighbor who'd want this for their block? Forward this email, or send them your personal link. | Forward this email (used as the forward button's label) | ignored |
-| `satisfaction` | Rotation | How'd we do? Reply and let us know. | | |
-| `impact_stat` | Rotation | This was your {cleaning_count_ordinal} cleaning. Your block has collected about {block_bags_total} bags so far. | See your block page | `{block_page_url}` |
-| `services_waitlist` | Rotation | Curious about compost, leaves, weeds, or snow? Join the waitlist. | Join the waitlist | TODO waitlist form URL |
-| `trash_can` | Rotation | Ask about adding a trash can to your block. | Ask us | TODO form or mailto |
-| `impact_fund` | Rotation | Want to help a block that needs support? Chip in to the Impact Fund. | Impact Fund | TODO |
-| `ambassador` | Rotation | Want to help organize your block or bring in neighbors? Let us know. | Let us know | TODO |
-| `review` | Rotation | Enjoying Glitter? A quick Google review helps other blocks find us. | Leave a review | TODO Google review link |
-| `cleaner_spotlight` | Rotation | Your block was cleaned by {cleaner_first_name}, a neighbor earning a living wage doing it. | | |
-| `social_share` | Rotation | Tag @shareglitter if you post about your clean block. | | |
-| `frequency_upgrade` | Rotation | Want your block cleaned twice a month instead of once? | Ask about upgrading | TODO |
-| `sponsor_block` | Rotation | Know a block that could use this but can't afford it? Sponsor a cleaning for them. | Sponsor a block | TODO |
-| `milestone_6mo` | Milestone (6) | Thank you for six months of clean blocks. | | |
-| `milestone_12mo` | Milestone (12) | Thank you for a year of clean blocks. | | |
+| `referral` | Rotation | Know a neighbor who'd want Glitter cleanings for their block? Forward this email, or send them your personal link. | Forward this email | ignored |
+| `satisfaction` | Rotation | How'd we do today? Reply and let us know if we hit the mark for your cleaning. | Reply | mailto:hello@shareglitter.com?subject=Cleaning on {block_name} |
+| `impact_stat` | Rotation | This is your {cleaning_count_this_year_ordinal} cleaning in {year}. Your block has collected about {block_bags_total} bags so far. | See your block page | {block_page_url} |
+| `services_waitlist` | Rotation | Curious about our new services like block-wide composting, or leaf, weed, and snow removal? Join the waitlist for one or more! | See New Services | TODO |
+| `trash_can` | Rotation | Ask about adding a trash can to your block that Glitter will maintain each week. | Add a Trashcan | mailto:hello@shareglitter.com?subject=Trash can for {block_name} |
+| `impact_fund` | Rotation | Want to help a block that needs cleaning support? Chip in to the Impact Fund. | Join Impact Fund | TODO |
+| `ambassador` | Rotation | Want to help organize your block or bring in more neighbors to pledge? Let us know. | Reply | mailto:hello@shareglitter.com?subject=Helping out on {block_name} |
+| `door_hangers` | Rotation | Want to let your neighbors know about Glitter and raise more funds? Request door hangers! | Get free doorhangers | TODO |
+| `review` | Rotation | Enjoying Glitter? A quick Google review helps other blocks find us. | Review us on Google | TODO |
+| `cleaner_spotlight` | Rotation | Your block was cleaned by {cleaner_first_name}, a neighbor earning a living wage doing it. Learn more about who we hire. | Watch 'Meet our Cleaners' | TODO |
+| `ambassador_booking` | Rotation | Want help talking to neighbors about Glitter? Book a free ambassador door-knocking session at your convenience. | Book an Ambassador | TODO |
+| `social_share` | Rotation | Share what we do for your block and tag @shareglitter to help others learn about us! | Facebook | Instagram | Nextdoor | https://www.facebook.com/shareglitter | https://www.instagram.com/shareglitter | https://nextdoor.com |
+| `frequency_upgrade` | Rotation | Want your block cleaned {next_frequency}? Increase your pledge. | Increase pledge | {block_page_url} |
+| `snow_waitlist` | Rotation | Show your interest in adding snow removal service to your block that Glitter will do seasonally. Join the waitlist! | Join snow removal waitlist | TODO |
+| `leaves_waitlist` | Rotation | Show your interest in adding leaf removal service to your block that Glitter will do seasonally. Join the waitlist! | Join leaf removal waitlist | TODO |
+| `weeding_waitlist` | Rotation | Show your interest in adding weed removal service to your block that Glitter will do seasonally. Join the waitlist! | Join weed removal waitlist | TODO |
+| `sponsor_block` | Rotation | Know a block that could use this but can't afford it? Sponsor a cleaning for them by making a pledge on that block. | Pledge on a new block here | https://www.shareglitter.com |
+| `request_sign` | Rotation | Want to show off that you are a Glitter block and raise more funds? Request a sign! | Request free sign | TODO |
+| `testimonial` | Rotation | Has Glitter made a difference on your block? Tell us about it in a sentence or two. | Share your story | mailto:hello@shareglitter.com?subject=My Glitter story ({block_name}) |
+| `service_poll` | Rotation | What should Glitter offer next near you? Tell us your ideas! | Tell us your ideas | TODO |
+| `milestone_6mo` | Milestone (6) | Thank you for six months of clean blocks. |  |  |
+| `milestone_12mo` | Milestone (12) | Thank you for a year of clean blocks. |  |  |
 
-Set `Active` on `referral` only (it's the one running now, as the forward/share section shipped 2026-09-18; its `Line Text` and CTA here are only used if the share section is ever retired). Set `Active` on both milestone rows if you want them live from day one.
-
-Three items need a decision before their row can go live:
-
-- **`cleaner_spotlight`**: needs the consent checkbox on Cleaners populated. Until then it silently drops for every recipient.
-- **`satisfaction`**: no link, so it depends entirely on Reply-To. Confirm the template's Reply-To goes to a monitored inbox (support@) and that replies get triaged. Consider a Postmark inbound webhook to Slack later.
-- **`frequency_upgrade`**: should probably only show to subscribers whose block is currently on a once-a-month cadence. That needs a per-recipient eligibility check the current design doesn't have. Ship it as a plain rotation line first; add an `Eligibility` field (formula name on Blocks to check) as a v2 if it gets traction.
+Set `Active` on `referral` only (it's the one running now). Leave the milestone rows inactive until the start-date question is settled. Lines with a TODO URL send as text only until the URL is filled in.
 
 ---
 

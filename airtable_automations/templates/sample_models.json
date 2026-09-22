@@ -9,10 +9,12 @@
     "preference_url": "https://app.shareglitter.com/",
     "secondary": {
       "text": "Enjoying Glitter? A quick Google review helps other blocks find us.",
-      "cta": {
-        "label": "Leave a review",
-        "url": "https://example.com/review?utm_source=cleaning_email&utm_medium=email&utm_campaign=post_clean_secondary&utm_content=review"
-      }
+      "ctas": [
+        {
+          "label": "Leave a review",
+          "url": "https://example.com/review?utm_source=cleaning_email&utm_medium=email&utm_campaign=post_clean_secondary&utm_content=review"
+        }
+      ]
     },
     "test_banner": {
       "line_key": "review",
@@ -31,8 +33,33 @@
     "block_page_url": "https://gltr.ly/1000SBouvier",
     "preference_url": "https://app.shareglitter.com/",
     "secondary": {
-      "text": "How'd we do? Reply and let us know.",
-      "cta": null
+      "text": "How'd we do today? Reply and let us know if we hit the mark for your cleaning.",
+      "ctas": []
+    }
+  },
+  "2b_secondary_three_buttons_live": {
+    "display_name": "Darrell W",
+    "block_name": "1000 S Bouvier St",
+    "cleaning_date": "Friday, September 18",
+    "cleaner_first_name": "Marcus",
+    "block_page_url": "https://gltr.ly/1000SBouvier",
+    "preference_url": "https://app.shareglitter.com/",
+    "secondary": {
+      "text": "Share what we do for your block and tag @shareglitter to help others learn about us!",
+      "ctas": [
+        {
+          "label": "Facebook",
+          "url": "https://facebook.com/shareglitter?utm_source=cleaning_email&utm_medium=email&utm_campaign=post_clean_secondary&utm_content=social_share"
+        },
+        {
+          "label": "Instagram",
+          "url": "https://instagram.com/shareglitter?utm_source=cleaning_email&utm_medium=email&utm_campaign=post_clean_secondary&utm_content=social_share"
+        },
+        {
+          "label": "Nextdoor",
+          "url": "https://nextdoor.com/?utm_source=cleaning_email&utm_medium=email&utm_campaign=post_clean_secondary&utm_content=social_share"
+        }
+      ]
     }
   },
   "3_referral_renders_as_share_live": {

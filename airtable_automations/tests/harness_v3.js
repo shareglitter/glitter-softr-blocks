@@ -6,12 +6,14 @@
 const fs = require("fs");
 const src = fs.readFileSync(process.argv[2] || require("path").join(__dirname, "..", "email_automation_v3_secondary.js"), "utf8");
 function rec(id, cells) { return { id, getCellValue: f => (f in cells ? cells[f] : null), getCellValueAsString: f => String(cells[f] ?? "") }; }
-async function run(name, { patch = s => s, lines, hour = 14, consent = false, noneOptedIn = false }) {
+async function run(name, { patch = s => s, lines, hour = 14, consent = false, noneOptedIn = false, weekly = false }) {
   const writes = []; let sent = null;
   const tables = {
     "Cleaning Log": [rec("recLOG1", { Block: [{ id: "recBLK" }], "Date and Time": "2026-09-18T15:00:00Z", Cleaner: [{ id: "recCLN" }], Trash: { name: "Medium. Up to 1 full bag" } }),
-                     rec("recLOG0", { Block: [{ id: "recBLK" }], "Date and Time": "2026-08-18T15:00:00Z", Trash: { name: "Heavy " } })],
-    "Blocks": [rec("recBLK", { "Block Name (Friendly)": "1000 S Bouvier St", Subscribers: [{ id: "recS1" }, { id: "recS2" }, { id: "recS3" }], "Block Page URL": "gltr.ly/1000SBouvier" })],
+                     rec("recLOG0", { Block: [{ id: "recBLK" }], "Date and Time": "2026-08-18T15:00:00Z", Trash: { name: "Heavy " } }),
+                     rec("recLOGOLD", { Block: [{ id: "recBLK" }], "Date and Time": "2025-06-01T15:00:00Z", Trash: { name: "Light" } })],
+    "Blocks": [rec("recBLK", { "Block Name (Friendly)": "1000 S Bouvier St", Subscribers: [{ id: "recS1" }, { id: "recS2" }, { id: "recS3" }], "Block Page URL": "gltr.ly/1000SBouvier",
+                              "Frequency Label (Lookup)": weekly ? "Every Week" : "Every Other Week", "Next Frequency Label": weekly ? "" : "3 out of 4 Weeks" })],
     "Cleaners": [rec("recCLN", { "Display Name": "Marcus Lee", "OK to Name in Emails": consent })],
     "Subscribers": [
       rec("recS1", { Email: "real.customer1@example.com", "Cleaning Notifications Opt-In": true, "Contribution Status (from Active Subscriptions)": [{ name: "Active" }], "Display Name": "Darrell W", "Referral Code": "DARRELL-LG7", "Member Since": "2025-01-10T00:00:00Z", "Milestones Sent": null }),
@@ -44,7 +46,12 @@ const rot = (key, text, extra = {}) => L("recL_" + key, { Key: key, "Line Text":
 const ALL = [
   rot("referral", "Know a neighbor?", { Active: true, "CTA Label": "Share", "CTA URL": "{block_page_url}" }),
   rot("review", "Enjoying Glitter? A quick review helps.", { "CTA Label": "Leave a review", "CTA URL": "https://g.page/r/abc" }),
-  rot("impact_stat", "This was your {cleaning_count_ordinal} cleaning. About {block_bags_total} bags so far.", {}),
+  rot("impact_stat", "This is your {cleaning_count_this_year_ordinal} cleaning in {year}. About {block_bags_total} bags so far.", {}),
+  rot("impact_alltime", "This was your {cleaning_count_ordinal} cleaning.", {}),
+  rot("social_share", "Tag @shareglitter!", { "CTA Label": "Facebook | Instagram | Nextdoor", "CTA URL": "https://facebook.com/shareglitter | instagram.com/shareglitter | https://nextdoor.com/x" }),
+  rot("satisfaction", "How'd we do today?", { "CTA Label": "Reply", "CTA URL": "mailto:hello@shareglitter.com?subject=Cleaning on {block_name}" }),
+  rot("frequency_upgrade", "Want your block cleaned {next_frequency}? Increase your pledge.", { "CTA Label": "Increase pledge", "CTA URL": "{block_page_url}" }),
+  rot("bad_pairs", "x", { "CTA Label": "One | Two", "CTA URL": "https://a.example" }),
   rot("cleaner_spotlight", "Cleaned by {cleaner_first_name}, a neighbor.", {}),
   L("recL_m6", { Key: "milestone_6mo", "Line Text": "Thank you for six months.", Mode: { name: "Milestone" }, Active: true, "Milestone Months": 6 }),
   L("recL_blank", {}),
@@ -60,7 +67,9 @@ const only = k => s => fill(s).replace('forceKeys: ["*"]', `forceKeys: ${JSON.st
   r = await run("3. test, forced referral → share not secondary", { lines: ALL, patch: only(["referral"]) });
   console.assert(r.sent[0].TemplateModel.share.text === "Know a neighbor?" && r.sent[0].TemplateModel.share.forward_label === "Share" && r.sent[0].TemplateModel.share.forward_mailto && !r.sent[0].TemplateModel.secondary, "FAIL 3");
   r = await run("4. test, forced impact_stat (counts)", { lines: ALL, patch: only(["impact_stat"]) });
-  console.assert(/2nd cleaning. About 3 bags/.test(r.sent[0].TemplateModel.secondary.text), "FAIL 4");
+  console.assert(r.sent[0].TemplateModel.secondary.text === "This is your 2nd cleaning in 2026. About 4 bags so far.", "FAIL 4: " + r.sent[0].TemplateModel.secondary.text);
+  r = await run("4b. test, forced impact_alltime (counts since Member Since include last year)", { lines: ALL, patch: only(["impact_alltime"]) });
+  console.assert(r.sent[0].TemplateModel.secondary.text === "This was your 3rd cleaning.", "FAIL 4b: " + r.sent[0].TemplateModel.secondary.text);
   r = await run("5. test, forced cleaner_spotlight, cleaner has not consented → dropped", { lines: ALL, patch: only(["cleaner_spotlight"]) });
   console.assert(!r.sent[0].TemplateModel.secondary && /dropped/.test(r.sent[0].TemplateModel.test_banner.outcome), "FAIL 5");
   r = await run("6. test, real rules → milestone overrides for 20-month member", { lines: ALL, patch: only([]) });
@@ -81,5 +90,15 @@ const only = k => s => fill(s).replace('forceKeys: ["*"]', `forceKeys: ${JSON.st
   console.assert(!r.sent && r.writes.length === 0, "FAIL 13");
   r = await run("14. test, forced cleaner_spotlight, cleaner consented → line names the cleaner", { lines: ALL, patch: only(["cleaner_spotlight"]), consent: true });
   console.assert(r.sent[0].TemplateModel.secondary && r.sent[0].TemplateModel.secondary.text === "Cleaned by Marcus, a neighbor.", "FAIL 14");
+  r = await run("15. three buttons from pipe-separated label/url", { lines: ALL, patch: only(["social_share"]) });
+  { const c = r.sent[0].TemplateModel.secondary.ctas; console.assert(c.length === 3 && c[1].url.startsWith("https://instagram.com/shareglitter?utm_source=") && c.map(x => x.label).join() === "Facebook,Instagram,Nextdoor", "FAIL 15: " + JSON.stringify(c)); }
+  r = await run("16. mailto Reply button: placeholder encoded, no UTM", { lines: ALL, patch: only(["satisfaction"]) });
+  { const c = r.sent[0].TemplateModel.secondary.ctas; console.assert(c.length === 1 && c[0].url === "mailto:hello@shareglitter.com?subject=Cleaning on 1000%20S%20Bouvier%20St", "FAIL 16: " + JSON.stringify(c)); }
+  r = await run("17a. frequency_upgrade on an every-other-week block → names the next step", { lines: ALL, patch: only(["frequency_upgrade"]) });
+  console.assert(r.sent[0].TemplateModel.secondary.text === "Want your block cleaned 3 out of 4 weeks? Increase your pledge.", "FAIL 17a: " + r.sent[0].TemplateModel.secondary.text);
+  r = await run("17b. frequency_upgrade on a weekly block → dropped", { lines: ALL, patch: only(["frequency_upgrade"]), weekly: true });
+  console.assert(!r.sent[0].TemplateModel.secondary && /no data for \{next_frequency\}/.test(r.sent[0].TemplateModel.test_banner.outcome), "FAIL 17b: " + r.sent[0].TemplateModel.test_banner.outcome);
+  r = await run("18. label/url counts differ → dropped, not half-rendered", { lines: ALL, patch: only(["bad_pairs"]) });
+  console.assert(!r.sent[0].TemplateModel.secondary && /2 CTA label/.test(r.sent[0].TemplateModel.test_banner.outcome), "FAIL 18");
   console.log("\nharness done");
 })();

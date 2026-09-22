@@ -16,9 +16,9 @@ See your cleaning photos and your block page:
 {{#secondary}}
 
 {{text}}
-{{#cta}}
+{{#each ctas}}
 {{label}}: {{url}}
-{{/cta}}
+{{/each}}
 {{/secondary}}
 {{#share}}
 
