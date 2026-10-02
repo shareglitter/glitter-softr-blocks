@@ -10,7 +10,7 @@
 
      STEPS:
      1. Choose a Service (only if compost available)
-     2. Make a Pledge ($10/$20/$50/Other + Donate My Savings toggle)
+     2. Make a Pledge ($15/$25/$50/Other + Donate My Savings toggle)
      3. Contact Info (name, email, phone, opt-in) + Submit
 
      CONFIG:
@@ -278,7 +278,7 @@
 
   .gc-modal-pledge-label {
     font-size: 12px;
-    font-weight: 600;
+    font-weight: 700;
     color: #444;
     margin-top: 4px;
   }
@@ -937,14 +937,14 @@
         </div>
 
         <div class="gc-modal-pledge-options" id="gcModalPledgeOptions">
-          <div class="gc-modal-pledge-option" data-amount="10">
+          <div class="gc-modal-pledge-option" data-amount="15">
             <div class="gc-radio"></div>
-            <div class="gc-modal-pledge-amount">$10<span class="gc-mo">/mo</span></div>
+            <div class="gc-modal-pledge-amount">$15<span class="gc-mo">/mo</span></div>
             <div class="gc-modal-pledge-label">Starter Pledge</div>
           </div>
-          <div class="gc-modal-pledge-option gc-selected" data-amount="20">
+          <div class="gc-modal-pledge-option gc-selected" data-amount="25">
             <div class="gc-radio"></div>
-            <div class="gc-modal-pledge-amount">$20<span class="gc-mo">/mo</span></div>
+            <div class="gc-modal-pledge-amount">$25<span class="gc-mo">/mo</span></div>
             <div class="gc-modal-pledge-label">Most Popular</div>
           </div>
           <div class="gc-modal-pledge-option" data-amount="50">
@@ -1234,7 +1234,7 @@
     hasCompost: false,
     totalSteps: 2,
     service: 'cleaning',
-    pledgeAmount: 20,
+    pledgeAmount: 25,
     donateSavings: true,
     smsOptin: true,
     blockName: '',
@@ -1519,7 +1519,7 @@
     var urlAmount = params.get('amount');
     if (urlAmount) {
       var num = parseInt(urlAmount);
-      if ([10, 20, 50].indexOf(num) !== -1) {
+      if ([15, 25, 50].indexOf(num) !== -1) {
         state.pledgeAmount = num;
         selectPledgeOption(num);
       } else if (num > 0) {
@@ -1622,7 +1622,7 @@
 
     if (options.amount) {
       var num = parseInt(options.amount);
-      if ([10, 20, 50].indexOf(num) !== -1) {
+      if ([15, 25, 50].indexOf(num) !== -1) {
         state.pledgeAmount = num;
         selectPledgeOption(num);
       } else if (num > 0) {
@@ -1809,8 +1809,8 @@
     }
 
     var pledgeOptionMap = {
-      10: '$10/mo — Starter pledge',
-      20: '$20/mo — Most popular',
+      15: '$15/mo — Starter Pledge',
+      25: '$25/mo — Most Popular',
       50: '$50/mo — Cleanup Champion',
     };
     var choosePledge = pledgeOptionMap[state.pledgeAmount] || 'Choose a different amount';
