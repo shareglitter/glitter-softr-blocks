@@ -1,7 +1,7 @@
 # Cleaning email — roadmap
 
-**Status:** Part 1 is **in test** as of 2026-09-18 (script, template and table exist; a test-only automation sends to two staff addresses). Parts 2 to 4 are not built. How the email ships today is in `docs/cleaning_email.md`; read that first, especially the rule that the immediate script and the morning catch-up script build the same `TemplateModel`.
-**Last merged:** 2026-09-18
+**Status:** Part 1 is **live** as of 2026-10-05: both live automations run the V3 scripts in `MODE = "live"`, the live Postmark template carries the secondary section, and `satisfaction` is the first active line. The president approved the 14 lines in the Airtable table on 2026-10-02. Automatic rotation of the active line is written but not set up yet (section 10). Deferred to a later revision by Sid on 2026-10-02: several buttons on one line, milestone lines, and the four-across row (Part 3). Parts 2 to 4 are not built. How the email ships today is in `docs/cleaning_email.md`; read that first, especially the rule that the immediate script and the morning catch-up script build the same `TemplateModel`.
+**Last merged:** 2026-10-05
 **Sources:** (1) the president's Google Doc "Cleaning Confirmation Email — Test Ideas" (Sep 17, 2026), turned into a build spec in a Claude chat; (2) her verbal asks relayed the same week: forward/share links, a thumbs up/down, and a four-across "4 more ways to get involved". The unmodified chat spec is in git history at commit `395a257` as `docs/post-clean-email-secondary-slot.md`.
 **Base:** Subscription Blocks (`appzuuUtAQVDg0YW1`)
 **Automations touched:**
@@ -134,7 +134,12 @@ Three conditional sections, each invisible unless the script sends its object:
 
 ### 5. Script changes
 
-Built as one file: `airtable_automations/email_automation_v3_secondary.js`. It is the V2 immediate script plus the secondary-line module, with a `MODE` constant.
+Built as two files that share one module:
+
+- `airtable_automations/email_automation_v3_secondary.js`, the immediate script: V2 plus the secondary-line module, with a `MODE` constant. The table below describes it.
+- `airtable_automations/email_automation_delayed_v3_secondary.js`, the morning catch-up (added 2026-10-02). Same `MODE` constant and the same allowlist guardrails. Its test mode always uses the real rules (Active checkbox), previews the flagged logs or, when none are flagged, the `TEST.maxLogs` most recent ones, and writes nothing, so flags are left for the live run.
+
+Everything between the `SECONDARY LINE MODULE` and `end secondary line module` markers is byte-identical in the two files, including `buildSubscriberModel()`, which builds the whole `TemplateModel`. Edit it in the immediate script, copy the block across, and let the harness confirm the copies match (scenario D0).
 
 | | `MODE = "test"` | `MODE = "live"` |
 |---|---|---|
@@ -143,7 +148,7 @@ Built as one file: `airtable_automations/email_automation_v3_secondary.js`. It i
 | Tour of the whole table | `TEST.sendEveryLine: true` sends every usable row as its own email in one run, banner marked `[n/N]`, so one Test click previews all lines. Set `recipients` to one address first or the count doubles. | n/a |
 | Nobody eligible on the block | still sends the testers a preview, rendered as the first linked subscriber, with the banner saying live would send nothing (`TEST.previewWhenNoneEligible`, on by default) | sends nothing |
 | Template | alias `cleaning-notification-test` | id `45583435` |
-| Line choice | `TEST.forceKeys`: `["*"]` random tour of every row, a list of keys, or `[]` for the real rules | Active checkbox, date window, milestones, one-active guardrail |
+| Line choice | `TEST.forceKeys`: `[]` for the real rules (the default since 2026-10-02, for go-live rehearsal), `["*"]` random tour of every row, or a list of keys | Active checkbox, date window, milestones, one-active guardrail |
 | Airtable writes | **none** (no `Email Delayed`, no log stamp, no counters, no `Milestones Sent`) | all of them |
 | Quiet hours | skips the send, writes nothing | sets `Email Delayed` for the catch-up |
 | Postmark tag | `secondary-test` | `secondary:<key>` |
@@ -160,9 +165,12 @@ Other differences from V2 worth knowing:
 - Bag totals under 1 and cleaning counts of 0 count as missing data, so the line drops instead of saying "about 0 bags".
 - `cleanerConsentField` is `"OK to Name in Emails"`, a checkbox on Cleaners (added 2026-09-18 once several cleaners had consented). `{cleaner_first_name}` is only available to a line when the cleaner who did that cleaning has it checked; otherwise `cleaner_spotlight` drops for that email. The field must exist before the script is pasted, because asking Airtable for a field name that does not exist fails the whole run.
 
-`node airtable_automations/tests/harness_v3.js` runs the script against a mocked base and mocked Postmark through twenty-two scenarios (allowlist, table tour, nobody-eligible blocks, multi-button rows, mailto buttons, this-year counts, weekly-block drop, forced lines, dropped placeholders, quiet hours, live write-back). Run it after every script edit.
+Catch-up differences from its V2 worth knowing:
 
-**Still to do at go-live:** the morning catch-up script needs the same module. Port it once the copy and code have settled in testing, then apply the secrets change to it too.
+- A log keeps its `Email Delayed` flag when Postmark rejects the whole request (wrong token in the secret, missing template), so the next morning retries it. V2 cleared the flag regardless and those emails were lost. A network error still clears the flag, because the request may have gone through.
+- `Emails Sent` is counted across all the logs of one run, and a milestone sent for one log is remembered for the next log in the same run.
+
+`node airtable_automations/tests/harness_v3.js` runs both scripts against a mocked base and mocked Postmark through 33 scenarios: allowlist, table tour, nobody-eligible blocks, multi-button rows, mailto buttons, counts, weekly-block drop, forced lines, dropped placeholders, quiet hours, live write-back, a render of every row of the seed CSV (scenario 22, which prints the rendered lines), and for the catch-up: module identity, flag handling, running counters and message-for-message parity with the immediate script. It exits 1 on any failure. It resets `MODE`, `TEST.recipients`, `forceKeys` and `sendEveryLine` before each scenario, so it runs against the working copy even when that holds real test addresses. Run it after every script edit.
 
 ---
 
@@ -182,6 +190,7 @@ Placeholders use single braces so they never collide with Postmark's `{{ }}`. Th
 | `{year}` | Current year in Eastern time | clock |
 | `{cleaning_count_this_year}` / `{…_ordinal}` | Cleanings on this block this calendar year, since the subscriber's start | Cleaning Log + `Member Since` |
 | `{cleaning_count}` / `{cleaning_count_ordinal}` | Same, all time since the subscriber's start | Cleaning Log + `Member Since` |
+| `{block_cleaning_count}` / `{block_cleaning_count_ordinal}` | Every logged cleaning of the block, whenever the subscriber joined. Use this one for "your block's Nth cleaning" (added 2026-10-02) | Cleaning Log |
 | `{block_bags_total}` | Total bags on this block, estimated from the `Trash` select until a `Bags` field exists | Cleaning Log |
 | `{cleaner_first_name}` | Cleaner's first name, only when `OK to Name in Emails` is checked | Cleaners |
 | `{block_frequency}` | Current cadence, lower-case: "every other week" | Blocks → `Frequency Label (Lookup)` |
@@ -192,36 +201,37 @@ Rule: if a line references a placeholder the script can't fill for that recipien
 
 ---
 
-### 7. Seed rows (from the president's doc, updated 2026-09-22)
+### 7. The lines (approved by the president, 2026-10-02)
 
-The canonical list is `airtable_automations/templates/email_secondary_lines_seed.csv` (22 rows). The table in Airtable was seeded from the 14-row version on 2026-09-18; the 8 rows the doc added since (`door_hangers`, `ambassador_booking`, `snow_waitlist`, `leaves_waitlist`, `weeding_waitlist`, `request_sign`, `testimonial`, `service_poll`) and the reworded rows have to be entered by hand.
+The Airtable table is the source of truth; lines are edited there. `airtable_automations/templates/email_secondary_lines_seed.csv` is a verbatim export of the table taken 2026-10-02, the version the president reviewed and agreed to. It replaces the 22-row list drafted on 2026-09-22 (that draft is in git history). Fourteen rotation rows, each with one button, no milestone rows:
 
-| Key | Mode | Line Text | CTA Label | CTA URL |
-|---|---|---|---|---|
-| `referral` | Rotation | Know a neighbor who'd want Glitter cleanings for their block? Forward this email, or send them your personal link. | Forward this email | ignored |
-| `satisfaction` | Rotation | How'd we do today? Reply and let us know if we hit the mark for your cleaning. | Reply | mailto:hello@shareglitter.com?subject=Cleaning on {block_name} |
-| `impact_stat` | Rotation | This is your {cleaning_count_this_year_ordinal} cleaning in {year}. Your block has collected about {block_bags_total} bags so far. | See your block page | {block_page_url} |
-| `services_waitlist` | Rotation | Curious about our new services like block-wide composting, or leaf, weed, and snow removal? Join the waitlist for one or more! | See New Services | TODO |
-| `trash_can` | Rotation | Ask about adding a trash can to your block that Glitter will maintain each week. | Add a Trashcan | mailto:hello@shareglitter.com?subject=Trash can for {block_name} |
-| `impact_fund` | Rotation | Want to help a block that needs cleaning support? Chip in to the Impact Fund. | Join Impact Fund | TODO |
-| `ambassador` | Rotation | Want to help organize your block or bring in more neighbors to pledge? Let us know. | Reply | mailto:hello@shareglitter.com?subject=Helping out on {block_name} |
-| `door_hangers` | Rotation | Want to let your neighbors know about Glitter and raise more funds? Request door hangers! | Get free doorhangers | TODO |
-| `review` | Rotation | Enjoying Glitter? A quick Google review helps other blocks find us. | Review us on Google | TODO |
-| `cleaner_spotlight` | Rotation | Your block was cleaned by {cleaner_first_name}, a neighbor earning a living wage doing it. Learn more about who we hire. | Watch 'Meet our Cleaners' | TODO |
-| `ambassador_booking` | Rotation | Want help talking to neighbors about Glitter? Book a free ambassador door-knocking session at your convenience. | Book an Ambassador | TODO |
-| `social_share` | Rotation | Share what we do for your block and tag @shareglitter to help others learn about us! | Facebook | Instagram | Nextdoor | https://www.facebook.com/shareglitter | https://www.instagram.com/shareglitter | https://nextdoor.com |
-| `frequency_upgrade` | Rotation | Want your block cleaned {next_frequency}? Increase your pledge. | Increase pledge | {block_page_url} |
-| `snow_waitlist` | Rotation | Show your interest in adding snow removal service to your block that Glitter will do seasonally. Join the waitlist! | Join snow removal waitlist | TODO |
-| `leaves_waitlist` | Rotation | Show your interest in adding leaf removal service to your block that Glitter will do seasonally. Join the waitlist! | Join leaf removal waitlist | TODO |
-| `weeding_waitlist` | Rotation | Show your interest in adding weed removal service to your block that Glitter will do seasonally. Join the waitlist! | Join weed removal waitlist | TODO |
-| `sponsor_block` | Rotation | Know a block that could use this but can't afford it? Sponsor a cleaning for them by making a pledge on that block. | Pledge on a new block here | https://www.shareglitter.com |
-| `request_sign` | Rotation | Want to show off that you are a Glitter block and raise more funds? Request a sign! | Request free sign | TODO |
-| `testimonial` | Rotation | Has Glitter made a difference on your block? Tell us about it in a sentence or two. | Share your story | mailto:hello@shareglitter.com?subject=My Glitter story ({block_name}) |
-| `service_poll` | Rotation | What should Glitter offer next near you? Tell us your ideas! | Tell us your ideas | TODO |
-| `milestone_6mo` | Milestone (6) | Thank you for six months of clean blocks. |  |  |
-| `milestone_12mo` | Milestone (12) | Thank you for a year of clean blocks. |  |  |
+| Key | Line Text | CTA Label | CTA URL |
+|---|---|---|---|
+| `referral` | Know a neighbor who'd want Glitter for their block? Earn $10 when they use your referral code ({referral_code}) and have them sign up at | Refer a neighbor to Glitter | ignored, see below |
+| `satisfaction` | How did we do cleaning your block today? | Reply and let us know. | mailto:support@shareglitter.com?subject=Cleaning on {block_name} {cleaning_date} |
+| `frequency_upgrade` | Want your block cleaned more often? | Increase your pledge | https://app.shareglitter.com/pledge |
+| `compost` | Get shared compost on your block with Glitter's partnership with Bennett Compost | Join Compost Waitlist | https://shareglitter.com/compost |
+| `impact_stat` | This was your block's {cleaning_count_ordinal} cleaning. We've collected about {block_bags_total} bags so far. | See your block's Glitter Hub page | {block_page_url} |
+| `impact_fund` | Want to help fund cleanings in areas that can't afford it? | Chip into the Impact Fund | https://www.shareglitter.com/funds |
+| `services_waitlist` | Curious about our new services like shared composting, trash cans, or leaf, weed, and snow removal? | Join the waitlist for one or more! | https://www.shareglitter.com/services |
+| `door_hangers` | Want free materials to let your neighbors know about Glitter and get them to contribute? | Request door hangers and signs! | https://app.shareglitter.com/signs |
+| `review` | Enjoying Glitter? A quick Google review helps other blocks find us. | Leave a review | https://g.page/r/CSo-5bIwtB-aEBM/review |
+| `trash_can` | Ask about adding a trash can to your block that Glitter will install and maintain each week. | Add a trash can | https://www.shareglitter.com/services |
+| `ambassador` | Want help talking to neighbors on your block about Glitter? | Let us know | https://app.shareglitter.com/neighbor-engagement |
+| `cleaner_spotlight` | Your block was cleaned by {cleaner_first_name}, a neighbor earning a living wage through this work. | Learn more about who we hire. | https://www.youtube.com/watch?v=HPaqhyAfYs4 |
+| `sponsor_block` | Want to help fund another block? You can make a pledge the same way you did for your block on our home page. | Sponsor a block | https://shareglitter.com |
+| `social_share` | Posting on Instagram? Tag us! | @shareglitter | https://www.instagram.com/shareglitter |
 
-Set `Active` on `referral` only (it's the one running now). Leave the milestone rows inactive until the start-date question is settled. Lines with a TODO URL send as text only until the URL is filled in.
+Notes on these rows, as checked 2026-10-02:
+
+- **No row is `Active` in the export.** Live mode with no active row sends the email with no secondary line at all, which also drops the forward section that V2 puts in every email. Tick exactly one before going live.
+- **`referral` renders as the forward section**, not as a plain line: the sentence, then a button with the row's label that opens a pre-written mail draft, then the subscriber's personal `?code=` link. The row's CTA URL is not used. The sentence as written ends in "sign up at", which is followed by the button and then the link. The `Notes` cell in Airtable still describes the pre-2026-09-18 behaviour. To render it as a plain line with its own button and URL instead, set `shareKey: null` in `SECONDARY_CONFIG` in both scripts. Its copy also names a $10 reward, which is the first departure from the "no incentive attached" constraint in section 1; that was the president's call.
+- **`impact_stat` says "your block's Nth cleaning" but `{cleaning_count_ordinal}` counts only since the subscriber joined.** Swap it for `{block_cleaning_count_ordinal}` in the row.
+- **Bare `shareglitter.com` URLs** (`compost`, `sponsor_block`) redirect to `www.` and lose every UTM parameter except `utm_content` on the way. Write them with `www.` to keep the full set.
+- **`door_hangers` and `ambassador`** point at hub pages that send a logged-out visitor through the login page first.
+- All ten web URLs answered 200 with the UTM parameters attached, including the Google review and YouTube links.
+- Several `Notes` cells still say "TODO: CTA URL" on rows that now have one, and `cleaner_spotlight`'s note predates the `OK to Name in Emails` field. Cosmetic.
+- `satisfaction` says "today"; an email held overnight goes out the next morning.
 
 ---
 
@@ -253,9 +263,13 @@ Per-line counters (`Emails Sent`, `First Sent`, `Last Sent`) live on the config 
 | V3.1 tour test | **2026-09-22.** `sendEveryLine` tour of all 22 rows rendered cleanly after `{cleaning_date}` and `{referral_code}` were added. Sid is now reviewing copy with the president. Milestone rows removed from the table until `Member Since` is trustworthy. Open with her: whether three social buttons breaks the one-line rule. |
 | Test recipients | Two staff addresses, both Sid's for now; add the president's when she is ready to receive them (max 3). |
 | `Active (Rotation) Count` field | Skipped on purpose. A formula cannot count across rows, and the script already refuses to send a rotation line when more than one is active. |
-| Catch-up script | Not ported. V2 still live. |
+| Catch-up script | **Ported 2026-10-02** as `email_automation_delayed_v3_secondary.js`. |
+| Copy approval | **2026-10-02.** The president approved the 14 rows now in the table (exported to the seed CSV). Multi-button lines, milestones and the four-across are deferred to a later revision. |
 
-**Test phase:**
+| Go-live | **2026-10-05.** Template `45583435` updated, then both scripts pasted into the existing automations, each tested once in `MODE = "test"` (catch-up: 4 previews from the two most recent cleanings with an eligible subscriber; immediate: 2 previews) and switched to `"live"`. Active line: `satisfaction`. The test automation `wfl9ZtmXDUoMB64uJ` was deleted, so the Postmark template alias `cleaning-notification-test` is now only used by the scripts' own test mode. First live sends and the first 6:15am catch-up run had not been observed when this was written. |
+| Lessons from the paste | The token must be added under the script step's **Secrets**, not as an input variable; as an input the script reads 0 characters and says so in its first log line. The catch-up's test mode originally previewed only the two newest logs and sent nothing when neither block had an eligible subscriber; it now passes over such blocks (9 of the 11 newest logs that day had nobody eligible). |
+
+**Test phase** (history; the test automation no longer exists):
 
 1. Postmark: duplicate template `45583435`, alias `cleaning-notification-test`. Paste the repo HTML and text bodies into the copy. Preview with each object in `sample_models.json`.
 2. Airtable: test automation as described in the table above, with the secret `POSTMARK_SERVER_TOKEN` added on the script step.
@@ -265,12 +279,41 @@ Per-line counters (`Emails Sent`, `First Sent`, `Last Sent`) live on the config 
 6. Known gap while testing: cleanings logged 9pm to 6am ET produce no test email.
 7. Every script edit: change the repo file first, run `node airtable_automations/tests/harness_v3.js`, then paste. Copy edits to lines happen in the Airtable table and need no paste at all.
 
-**Go-live:**
+**Go-live** (done 2026-10-05; kept as the ritual for any later script change, minus steps 1, 2 and the test automation):
 
-1. Port the module into the catch-up script.
-2. Paste the tested HTML and text into template `45583435`.
-3. Paste the script into the **existing** live automation's script step with `MODE = "live"`, add the secret there, and switch the test automation off in the same sitting. Two automations in live mode would double-send.
-4. Watch the first runs and the next 6:15am catch-up log.
+1. Airtable table: tick `Active` on exactly one row. Apply the row fixes listed under section 7 if wanted.
+2. Postmark: paste the repo HTML and text into live template `45583435`. Safe to do first: the V2 scripts keep rendering against it.
+3. Catch-up automation `wflfaR1X0DQAwzTU2`: add the secret `POSTMARK_SERVER_TOKEN` on the script step, paste `email_automation_delayed_v3_secondary.js`, put the test addresses in `TEST.recipients`, leave `MODE = "test"` and click Test. Expect previews of the two most recent cleanings at the test addresses, each carrying the active line, and nothing changed in Airtable. Then change `MODE` to `"live"` and save.
+4. Immediate automation `wflCdrhjYRo6d23pd`: add the secret, paste `email_automation_v3_secondary.js` into the existing script step, leave `MODE = "test"` and click Test (one preview per tester, nothing written). Then change `MODE` to `"live"`, save, and switch the test automation `wfl9ZtmXDUoMB64uJ` off. Two automations in live mode would double-send.
+5. Do not click Test on either script once it says `"live"`: the immediate script would email that record's real subscribers again, and the catch-up would send whatever is flagged at that moment.
+6. Watch the first runs and the next 6:15am catch-up log. Rollback is pasting the V2 files back (`email_automation.js`, `email_automation_delayed.js`); the template works with both.
+7. Afterwards: rotate the Postmark server token (it is hardcoded in the V2 files and has been pasted into chats), update the secret in both automations, and delete or scrub the V2 files.
+
+Changing the line later is a checkbox move in the table: untick the old row, tick the new one. Two ticked rows means emails go out with no line until it is fixed.
+
+---
+
+### 10. Automatic rotation
+
+`airtable_automations/rotate_secondary_line.js` moves the `Active` checkbox to the next row on a schedule, so nobody has to remember to. Written 2026-10-05; **not set up in Airtable yet.**
+
+How it picks:
+
+- Only rows with a number in a new **`Rotation Order`** field take part. Blank means the row is never picked automatically, which is how to hold back a seasonal or unfinished line. Rows must also be Rotation mode, have a Key and Line Text, and be inside their Start Date / End Date window.
+- Next is the row after the current active one in `Rotation Order`, wrapping round to the lowest number.
+- If the active row is not part of the rotation (ticked by hand for a special, expired, or nothing ticked), it unticks it and resumes with the row whose `Last Sent` is oldest, never-sent rows first.
+- Both checkbox changes go in one write, so the send scripts never see two rows ticked.
+- Every run moves the line on. The pace is whatever the trigger's schedule says.
+
+Setup:
+
+1. `Email Secondary Lines`: add a Number field `Rotation Order` and number the rows that should rotate.
+2. New automation, trigger "At a scheduled time" every 10 days (early morning Eastern), action "Run a script" with the whole file. No inputs, no secrets.
+3. Click Test with `DRY_RUN = true`: the log lists the rows in rotation and says which one it would activate, and nothing changes. Then set `DRY_RUN = false` and turn the automation on. A Test click with `false` really does rotate.
+
+A row ticked by hand stays live only until the next scheduled run. To pin one line for longer, turn the rotation automation off.
+
+`node airtable_automations/tests/harness_rotate.js` covers it offline (10 scenarios).
 
 ---
 
@@ -360,15 +403,23 @@ A four-across tile row between the card and the footer.
 
 ## Open questions for Sid / the president
 
-Decisions that block work:
+Settled:
 
-1. Four-across versus the one-line rule: separate marketing email, accept the risk, or make it a rotation entry? (Part 3)
-2. Is a silent `?code=` on the share link acceptable under "no incentive attached"? (How the pieces fit)
-3. Subscription start date: backfill a real date for the rows that look bulk-imported on 2024-06-17, or run on `Member Since` with milestones off? (3d)
-4. Bag counts: add a real `Bags` field to the cleaner flow, or ship an estimate from the `Trash` select and say "about N bags"? (3d)
-5. Cleaner naming: add a consent checkbox and ask cleaners, or leave `cleaner_spotlight` off? (3d)
-6. Where do the TODO CTA URLs point (waitlist, trash can, Impact Fund, ambassador, review, upgrade, sponsor)? (section 7)
-7. Milestones: on from day one, and do they override the rotation line that day (current design) or add a second line (breaks the one-line rule, recommended no)?
+- Cleaner naming: the `OK to Name in Emails` checkbox exists (2026-09-18); `cleaner_spotlight` drops for cleaners without it.
+- CTA URLs: every row has one as of 2026-10-02.
+- Bag counts: shipping the estimate from the `Trash` select ("about N bags") for now.
+- Incentive on the referral line: the approved copy names the $10 reward, so the silent `?code=` question is moot.
+
+Still open:
+
+1. Should `referral` render as the forward section (today) or as a plain line with its own button? (section 7)
+2. Rotation pace and order: every 10 days was the first suggestion; the order is whatever goes in `Rotation Order`. (section 10)
+
+Deferred to the next revision (Sid, 2026-10-02):
+
+3. Several buttons on one line (the three social buttons) versus the one-line rule.
+4. Milestones: on at all, and do they override the rotation line that day (current design) or add a second line (breaks the one-line rule, recommended no)? Needs the subscription start date settled first: backfill a real date for the rows that look bulk-imported on 2024-06-17, or run on `Member Since`. (3d)
+5. Four-across versus the one-line rule: separate marketing email, accept the risk, or make it a rotation entry? (Part 3)
 
 Only if the thumbs get built (Part 2):
 

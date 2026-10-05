@@ -5,13 +5,29 @@ Written so it can be picked up cold.
 
 | Piece | Where it lives | Repo copy |
 |---|---|---|
-| Main send script | Airtable base *Subscription Blocks*, automation **New Cleaning Log: Last Clean Date & Send Email Notification**, 2nd script step | `airtable_automations/email_automation.js` |
-| Morning catch-up script | Same base, automation **Send Delayed Cleaning Emails** (daily 6:15am ET) | `airtable_automations/email_automation_delayed.js` |
+| Main send script | Airtable base *Subscription Blocks*, automation **New Cleaning Log: Last Clean Date & Send Email Notification**, 2nd script step | `airtable_automations/email_automation_v3_secondary.js` |
+| Morning catch-up script | Same base, automation **Send Delayed Cleaning Emails** (daily 6:15am ET) | `airtable_automations/email_automation_delayed_v3_secondary.js` |
 | Template | Postmark template id `45583435`, stream `cleaning-notifications` | `airtable_automations/templates/post_cleaning_emails_postmark.html` |
 
 Both scripts build the **same `TemplateModel`**. Anything added to one must be
 added to the other, or emails delayed overnight (9pm–6am ET) will render
-differently from daytime ones. `buildShare()` is copied verbatim into both.
+differently from daytime ones. Since V3 (live 2026-10-05) that is enforced by
+one module copied verbatim into both files, between the `SECONDARY LINE MODULE`
+markers; it holds `buildShare()` and `buildSubscriberModel()`, which builds
+the whole model. The harness fails if the two copies differ.
+
+Both files are committed with `MODE = "test"` and placeholder test addresses.
+What runs in Airtable is the same file with `MODE = "live"`. The paste ritual
+(paste, click Test once in test mode, then flip to live) is in
+`docs/cleaning_email_roadmap.md` section 9. The token comes from the script
+step's Secrets as `POSTMARK_SERVER_TOKEN`.
+
+Since V3 the email also carries one rotating secondary line, chosen by the
+`Active` checkbox in the `Email Secondary Lines` table. The model gets a
+`secondary` object for that line, or `share` when the active line's key is
+`referral`, never both, and neither when no row is active. The sections below
+describe the share section as first shipped in V2 (`email_automation.js` and
+`email_automation_delayed.js`, untracked because they hardcode a token).
 
 ## Template model
 
