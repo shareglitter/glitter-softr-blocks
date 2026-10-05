@@ -1,49 +1,31 @@
 // ============================================================
-// Airtable Automation Script Block — V3.1 (rotating secondary line)
-// Sends cleaning notification emails via Postmark
+// Airtable Automation Script Block — Morning Catchup V3.2 (rotating secondary line)
+// Sends the cleaning notification emails that were held overnight
+// (Cleaning Log rows with "Email Delayed" checked).
 //
 // WHAT CHANGED FROM V2:
-// - Reads the one active row from "Email Secondary Lines" and sends it
-//   as `secondary` (or, for the `referral` key, as the richer `share`
-//   section). An email never carries both.
-// - MODE switch. In "test" mode every email goes ONLY to TEST.recipients,
-//   nothing is written back to Airtable, and a TEST banner is added.
+// - Carries the same secondary-line module as email_automation_v3_secondary.js,
+//   so an email held overnight renders exactly like a daytime one, and stamps
+//   the same attribution (Secondary Line on the log, Emails Sent on the line).
+// - MODE switch, same meaning as in the immediate script.
 // - Postmark token comes from an automation Secret, not the source.
-// - Subscribers are loaded in one query instead of one query each.
+// - A log keeps its "Email Delayed" flag when Postmark rejects the whole
+//   request (wrong token, missing template), so the next morning retries it
+//   instead of the emails being lost.
 //
-// WHAT CHANGED IN V3.1 (president's test-ideas doc, 2026-09-22):
-// - A row can carry several buttons: "Facebook | Instagram | Nextdoor" in
-//   CTA Label with three URLs in CTA URL, pipe-separated in the same order.
-// - mailto: CTAs (the "Reply" button) get their placeholders URL-encoded.
-// - New placeholders: {year}, {cleaning_count_this_year},
-//   {cleaning_count_this_year_ordinal}, {block_frequency}, {next_frequency},
-//   {cleaning_date}, {referral_code}, {share_url}, {cleaner_name_in_greeting}.
-//   {next_frequency} is blank for blocks already cleaned every week, so a
-//   line that uses it drops for those blocks on its own.
-//
-// WHAT CHANGED IN V3.2 (go-live, 2026-10-02):
-// - The per-subscriber model is built by buildSubscriberModel() inside the
-//   shared module, which the morning catch-up script carries too.
-// - New placeholders {block_cleaning_count} / {block_cleaning_count_ordinal}:
-//   every logged cleaning of the block, not just since the subscriber joined.
-//
-// SETUP (test automation):
-// 1. New automation, trigger "When record matches conditions" on
-//    Cleaning Log: "Block Code [string]" is not empty (same as live).
-// 2. Action "Run a script", paste this whole file.
-// 3. Input variable:  recordId = the trigger record's Airtable record ID
-// 4. Secrets panel:   add POSTMARK_SERVER_TOKEN
-// 5. Fill in TEST.recipients below. The script refuses to run until you do.
+// SETUP:
+// 1. Trigger: "At a scheduled time", every day, 6:15 AM Eastern
+// 2. Action: "Run a script", paste this whole file
+// 3. Secrets panel: add POSTMARK_SERVER_TOKEN. No input variables.
+// 4. Rehearsal: fill in TEST.recipients, keep MODE = "test", click Test.
 //
 // Spec and rollout notes: docs/cleaning_email_roadmap.md
 // ============================================================
 
 // ── Mode ────────────────────────────────────────────────────
-// "test": deliver only to TEST.recipients, write nothing to Airtable.
-// "live": deliver to subscribers and write attribution back.
-// Going live means pasting this into the EXISTING live automation with
-// MODE = "live" and switching the test automation off. Never run a second
-// automation in "live" next to the old one: subscribers would get two emails.
+// "test": deliver only to TEST.recipients, write nothing to Airtable
+//         (flags stay as they are, so the live run is unaffected).
+// "live": deliver to subscribers, write attribution back, clear the flags.
 const MODE = "test";
 
 const TEST = {
@@ -51,34 +33,19 @@ const TEST = {
     recipients: ["YOUR_EMAIL_HERE", "PRESIDENT_EMAIL_HERE"],
     // A copy of the live Postmark template, so copy edits never touch live sends.
     templateAlias: "cleaning-notification-test",
-    // How many real subscribers of the cleaned block to render the email "as".
-    // Each preview goes to every test recipient, so 1 preview = 2 emails per cleaning.
+    // How many real subscribers of each block to render the email "as".
     maxPreviewsPerLog: 1,
-    // Which line to show:
-    //   ["*"]                 a random row that has a Key and Line Text (tour every line in a few days)
-    //   ["review", "referral"] random among these keys
-    //   []                    the real rules: Active checkbox, date window, milestones, one-active guardrail
-    forceKeys: [],
-    // true = one run sends EVERY usable row as its own email (a tour of the whole table
-    // in one Test click), each to every test recipient. forceKeys is ignored.
-    // With 20 rows and 2 recipients that is 40 emails, so set recipients to one address first.
-    sendEveryLine: false,
-    // true = skip test sends during quiet hours, the way live sends are held back
-    respectQuietHours: true,
-    // true = when nobody on the block is eligible (live would send nothing), still send the
-    // testers a preview rendered as the first linked subscriber. The banner says so.
-    previewWhenNoneEligible: true,
+    // How many logs one test run previews. Flagged logs come first; when none are
+    // flagged (the live run clears them at 6:15am) the most recent logs stand in.
+    // Logs whose block has nobody eligible are passed over, so a test always sends.
+    maxLogs: 2,
 };
 
-// ── Config ──────────────────────────────────────────────────
+// ── Config (same as the immediate script, keep in sync) ─────
 const POSTMARK_TEMPLATE_ID = 45583435;   // live template
 const PREFERENCE_PAGE_URL = "https://app.shareglitter.com/";
 const FROM_ADDRESS = "support@shareglitter.com";
 const MESSAGE_STREAM = "cleaning-notifications";
-
-// Hours when emails should NOT send (24hr format, Eastern Time)
-const QUIET_HOURS_START = 21;  // 9pm ET
-const QUIET_HOURS_END = 6;     // 6am ET
 
 // Churn statuses — subscribers with ONLY these statuses won't get emails
 const CHURN_STATUSES = ["Payment Churn", "Positive Churn", "Negative Churn"];
@@ -383,274 +350,267 @@ const POSTMARK_SERVER_TOKEN = String(input.secret("POSTMARK_SERVER_TOKEN") || ""
 if (!/^[0-9a-f]{8}-([0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(POSTMARK_SERVER_TOKEN)) {
     console.log(`⚠ POSTMARK_SERVER_TOKEN secret is ${POSTMARK_SERVER_TOKEN.length} characters and is not shaped like a Postmark server token (36 characters, 8-4-4-4-12 hex). Check for quotes or extra text, and that it is the SERVER token (Postmark → Servers → your server → API Tokens), not the Account token.`);
 }
-const cleaningLogRecordId = input.config().recordId;
+const now = new Date();
 console.log(`MODE = ${MODE}${IS_TEST ? ` → delivering only to ${TEST.recipients.join(", ")}; no Airtable writes` : ""}`);
 
-// ── Check quiet hours FIRST ─────────────────────────────────
-const now = new Date();
-const eastern = new Date(now.toLocaleString("en-US", { timeZone: "America/New_York" }));
-const currentHour = eastern.getHours();
-const isDuringQuietHours = (currentHour >= QUIET_HOURS_START || currentHour < QUIET_HOURS_END);
+// ── Find the logs to process ────────────────────────────────
 const cleaningLogTable = base.getTable("Cleaning Log");
+const allCleaningLogs = await cleaningLogTable.selectRecordsAsync({
+    fields: ["Email Delayed", "Block", "Date and Time", "Cleaner", SECONDARY_CONFIG.cleaningLogBagsField, SECONDARY_CONFIG.cleaningLogLitterField].filter(Boolean)
+});
 
-if (isDuringQuietHours && (!IS_TEST || TEST.respectQuietHours)) {
-    console.log(`Current hour is ${currentHour}:00 ET — inside quiet hours (${QUIET_HOURS_START}:00–${QUIET_HOURS_END}:00).`);
-    if (IS_TEST) {
-        console.log("Test mode: live would flag this record for the morning catch-up. Not writing the flag, not sending. Exiting.");
-        return;
+let delayedRecords = allCleaningLogs.records.filter(r => r.getCellValue("Email Delayed") === true);
+let pickedBy = `"Email Delayed" flag`;
+if (IS_TEST) {
+    if (delayedRecords.length === 0) {
+        delayedRecords = allCleaningLogs.records
+            .filter(r => (r.getCellValue("Block") || []).length > 0 && r.getCellValue("Date and Time"))
+            .sort((a, b) => new Date(b.getCellValue("Date and Time")) - new Date(a.getCellValue("Date and Time")));
+        pickedBy = "most recent logs (none flagged)";
     }
-    await cleaningLogTable.updateRecordAsync(cleaningLogRecordId, { "Email Delayed": true });
-    console.log("Email Delayed checkbox set. Morning automation will handle this. Exiting.");
-    return;
+    delayedRecords = delayedRecords.slice(0, 40);   // candidates; the loop stops after TEST.maxLogs previews
 }
 
-// ── Fetch the Cleaning Log record ───────────────────────────
-const cleaningLogRecord = await cleaningLogTable.selectRecordAsync(cleaningLogRecordId, {
-    fields: ["Block", "Date and Time", "Cleaner"]
-});
-if (!cleaningLogRecord) {
-    console.log("No cleaning log record found. Exiting.");
+if (delayedRecords.length === 0) {
+    console.log("No delayed emails to send. All clear!");
     return;
 }
+console.log(IS_TEST
+    ? `Test mode: previewing up to ${TEST.maxLogs} of ${delayedRecords.length} candidate log(s), picked by ${pickedBy}.\n`
+    : `Found ${delayedRecords.length} cleaning notification(s) to send, picked by ${pickedBy}.\n`);
 
-// ── Get the Block ───────────────────────────────────────────
-const blockLinks = cleaningLogRecord.getCellValue("Block");
-if (!blockLinks || blockLinks.length === 0) {
-    console.log("No block linked to this cleaning log. Exiting.");
-    return;
-}
-const blockId = blockLinks[0].id;
+// ── Load the other tables once (5 queries total) ────────────
+const byId = (q) => new Map(q.records.map(r => [r.id, r]));
 
-const blocksTable = base.getTable("Blocks");
-const blockRecord = await blocksTable.selectRecordAsync(blockId, {
+const blocksById = byId(await base.getTable("Blocks").selectRecordsAsync({
     fields: ["Block Name (Friendly)", "Subscribers", "Block Page URL", "Frequency Label (Lookup)", "Next Frequency Label"]
-});
-if (!blockRecord) {
-    console.log("Block record not found. Exiting.");
-    return;
+}));
+
+const subscribersTable = base.getTable("Subscribers");
+const subscribersById = byId(await subscribersTable.selectRecordsAsync({
+    fields: ["Email", "Cleaning Notifications Opt-In", "Contribution Status (from Active Subscriptions)",
+        "Display Name", "Referral Code", SECONDARY_CONFIG.subscriberStartField, SECONDARY_CONFIG.subscriberMilestonesField]
+}));
+
+const cleanersById = byId(await base.getTable("Cleaners").selectRecordsAsync({
+    fields: ["Display Name", SECONDARY_CONFIG.cleanerConsentField].filter(Boolean)
+}));
+
+const lines = await loadSecondaryLines();
+const needsCounts = [lines.rotation, ...lines.milestones].filter(Boolean).some(lineNeedsCounts);
+console.log("Tables loaded.");
+
+// ── Process each delayed record ─────────────────────────────
+let totalSent = 0;
+let totalSkipped = 0;
+let previewed = 0;   // test mode: logs that produced a preview
+const milestonesThisRun = new Map();   // subscriber id → tags sent earlier in this run
+
+async function clearFlag(recordId) {
+    if (IS_TEST) return;
+    await cleaningLogTable.updateRecordAsync(recordId, { "Email Delayed": false });
 }
 
-const blockName = blockRecord.getCellValue("Block Name (Friendly)");
-let blockPageUrl = blockRecord.getCellValue("Block Page URL") || "";
-if (blockPageUrl && !blockPageUrl.startsWith("http")) {
-    blockPageUrl = "https://" + blockPageUrl;
-}
-// "Every Week" blocks have no Next Frequency Label, so {next_frequency} lines drop for them.
-const blockFrequency = blockRecord.getCellValueAsString("Frequency Label (Lookup)").trim().toLowerCase();
-const nextFrequency = blockRecord.getCellValueAsString("Next Frequency Label").trim().toLowerCase();
-const subscriberLinks = blockRecord.getCellValue("Subscribers");
-if (!subscriberLinks || subscriberLinks.length === 0) {
-    console.log(`No subscribers linked to block "${blockName}". Exiting.`);
-    return;
-}
+for (const cleaningLogRecord of delayedRecords) {
+    if (IS_TEST && previewed >= TEST.maxLogs) break;
+    console.log(`\n── Processing record ${cleaningLogRecord.id} ──`);
 
-// ── Get the Cleaner's display name (and consent, once that field exists) ──
-const cleanerLinks = cleaningLogRecord.getCellValue("Cleaner");
-let cleanerFirstName = "Your cleaner"; // fallback
-let cleanerNameable = false;
-if (cleanerLinks && cleanerLinks.length > 0) {
-    const consentField = SECONDARY_CONFIG.cleanerConsentField;
-    const cleanerRecord = await base.getTable("Cleaners").selectRecordAsync(cleanerLinks[0].id, {
-        fields: ["Display Name", consentField].filter(Boolean)
-    });
-    const displayName = cleanerRecord ? cleanerRecord.getCellValue("Display Name") : null;
-    if (displayName) {
-        cleanerFirstName = displayName.split(" ")[0];
+    // ── Get the Block ───────────────────────────────────────
+    const blockLinks = cleaningLogRecord.getCellValue("Block");
+    const blockRecord = blockLinks && blockLinks.length > 0 ? blocksById.get(blockLinks[0].id) : null;
+    if (!blockRecord) {
+        console.log("  No block linked, or block not found. Clearing flag and skipping.");
+        await clearFlag(cleaningLogRecord.id);
+        continue;
+    }
+    const blockId = blockRecord.id;
+
+    const blockName = blockRecord.getCellValue("Block Name (Friendly)");
+    // Block Page URL is stored without a scheme (gltr.ly/...)
+    let blockPageUrl = blockRecord.getCellValue("Block Page URL") || "";
+    if (blockPageUrl && !blockPageUrl.startsWith("http")) {
+        blockPageUrl = "https://" + blockPageUrl;
+    }
+    // "Every Week" blocks have no Next Frequency Label, so {next_frequency} lines drop for them.
+    const blockFrequency = blockRecord.getCellValueAsString("Frequency Label (Lookup)").trim().toLowerCase();
+    const nextFrequency = blockRecord.getCellValueAsString("Next Frequency Label").trim().toLowerCase();
+    const subscriberLinks = blockRecord.getCellValue("Subscribers");
+
+    if (!subscriberLinks || subscriberLinks.length === 0) {
+        console.log(`  No subscribers on block "${blockName}". Clearing flag.`);
+        await clearFlag(cleaningLogRecord.id);
+        continue;
+    }
+
+    // ── Get the Cleaner's display name and consent ──────────
+    const cleanerLinks = cleaningLogRecord.getCellValue("Cleaner");
+    let cleanerFirstName = "Your cleaner"; // fallback
+    let cleanerNameable = false;
+    const cleanerRecord = cleanerLinks && cleanerLinks.length > 0 ? cleanersById.get(cleanerLinks[0].id) : null;
+    const cleanerDisplayName = cleanerRecord ? cleanerRecord.getCellValue("Display Name") : null;
+    if (cleanerDisplayName) {
+        const consentField = SECONDARY_CONFIG.cleanerConsentField;
+        cleanerFirstName = cleanerDisplayName.split(" ")[0];
         cleanerNameable = consentField ? cleanerRecord.getCellValue(consentField) === true : false;
     }
-}
 
-// ── Format the cleaning date ────────────────────────────────
-const rawDate = cleaningLogRecord.getCellValue("Date and Time");
-let cleaningDate = "today";
-if (rawDate) {
-    cleaningDate = new Date(rawDate).toLocaleDateString("en-US", {
-        weekday: "long", month: "long", day: "numeric", timeZone: "America/New_York"
-    });
-}
-
-// ── Fetch and filter subscribers (one query per 100 links) ──
-const subscribersTable = base.getTable("Subscribers");
-const subscriberFields = ["Email", "Cleaning Notifications Opt-In", "Contribution Status (from Active Subscriptions)",
-    "Display Name", "Referral Code", SECONDARY_CONFIG.subscriberStartField, SECONDARY_CONFIG.subscriberMilestonesField];
-const subscribers = [];
-for (let i = 0; i < subscriberLinks.length; i += 100) {
-    const q = await subscribersTable.selectRecordsAsync({
-        fields: subscriberFields,
-        recordIds: subscriberLinks.slice(i, i + 100).map(l => l.id)
-    });
-    subscribers.push(...q.records);
-}
-
-const emailRecipients = [];
-const ineligible = [];   // same shape as emailRecipients, plus `why`; only used for test previews
-const skipped = { noOptIn: [], churned: [], noEmail: [] };
-console.log(`Block "${blockName}" has ${subscriberLinks.length} linked subscriber(s). Checking eligibility...`);
-
-for (const subscriber of subscribers) {
-    const displayName = subscriber.getCellValue("Display Name") || "Unknown";
-    const email = subscriber.getCellValue("Email");
-    const info = {
-        email: email && typeof email === "object" ? email.email || email : email,
-        subscriberName: displayName,
-        subscriberId: subscriber.id,
-        referralCode: subscriber.getCellValueAsString("Referral Code"),
-        startDate: subscriber.getCellValue(SECONDARY_CONFIG.subscriberStartField),
-        milestonesSent: (subscriber.getCellValue(SECONDARY_CONFIG.subscriberMilestonesField) || []).map(x => x.name),
-    };
-
-    if (!subscriber.getCellValue("Cleaning Notifications Opt-In")) {
-        skipped.noOptIn.push(displayName);
-        ineligible.push({ ...info, why: "not opted in" });
-        continue;
+    // ── Format cleaning date ────────────────────────────────
+    const rawDate = cleaningLogRecord.getCellValue("Date and Time");
+    let cleaningDate = "recently";
+    if (rawDate) {
+        cleaningDate = new Date(rawDate).toLocaleDateString("en-US", {
+            weekday: "long", month: "long", day: "numeric", timeZone: "America/New_York"
+        });
     }
 
-    const statuses = subscriber.getCellValue("Contribution Status (from Active Subscriptions)");
-    if (!statuses || statuses.length === 0) {
-        skipped.churned.push(`${displayName} (no status)`);
-        ineligible.push({ ...info, why: "no contribution status" });
-        continue;
-    }
-    const statusValues = Array.isArray(statuses)
-        ? statuses.map(s => typeof s === "object" ? s.name || s : s)
-        : [statuses];
-    if (!statusValues.some(s => !CHURN_STATUSES.includes(s))) {
-        skipped.churned.push(`${displayName} (${statusValues.join(", ")})`);
-        ineligible.push({ ...info, why: "churned" });
-        continue;
-    }
+    // ── Filter subscribers (all from memory, zero queries) ──
+    const emailRecipients = [];
+    for (const link of subscriberLinks) {
+        const subscriber = subscribersById.get(link.id);
+        if (!subscriber) continue;
 
-    if (!email) {
-        skipped.noEmail.push(displayName);
-        ineligible.push({ ...info, why: "no email on file" });
-        continue;
-    }
-
-    emailRecipients.push(info);
-    console.log(`  ✓ ${displayName} — opted in, status: ${statusValues.join(", ")}`);
-}
-
-console.log(`\n── Summary for "${blockName}" ──`);
-console.log(`Eligible: ${emailRecipients.length}`);
-if (skipped.noOptIn.length > 0) console.log(`Not opted in (${skipped.noOptIn.length}): ${skipped.noOptIn.join(", ")}`);
-if (skipped.churned.length > 0) console.log(`Churned/no status (${skipped.churned.length}): ${skipped.churned.join(", ")}`);
-if (skipped.noEmail.length > 0) console.log(`No email on file (${skipped.noEmail.length}): ${skipped.noEmail.join(", ")}`);
-
-// What live would do with this cleaning. Shown in the test banner.
-let audienceNote = `${emailRecipients.length} of ${subscribers.length} linked subscriber(s) would get this email`;
-let previewPool = emailRecipients;
-
-if (emailRecipients.length === 0) {
-    if (IS_TEST && TEST.previewWhenNoneEligible && ineligible.length > 0) {
-        previewPool = ineligible;
-        audienceNote = `NOBODY. 0 of ${subscribers.length} linked subscriber(s) are eligible, so live sends nothing for this cleaning. Preview only, rendered as ${ineligible[0].subscriberName} (${ineligible[0].why}).`;
-        console.log("No eligible recipients: live would send nothing. Test mode is sending a preview anyway (TEST.previewWhenNoneEligible).");
-    } else {
-        console.log("No eligible recipients. Exiting.");
-        return;
-    }
-}
-
-// ── Pick the secondary line ─────────────────────────────────
-let lines = await loadSecondaryLines();
-let selectionNote = "real rules (Active checkbox)";
-let variants = null;   // test tour: one `lines` object per row
-if (IS_TEST && TEST.sendEveryLine) {
-    variants = lines.usable.map(r => ({ ...lines, rotation: r, milestones: [], problem: "" }));
-    if (variants.length === 0) variants = [{ ...lines, rotation: null, milestones: [], problem: "no usable rows in the table" }];
-    selectionNote = `tour of every row (${variants.length}), Active ignored`;
-} else if (IS_TEST && TEST.forceKeys.length > 0) {
-    const pool = TEST.forceKeys.includes("*")
-        ? lines.usable
-        : lines.usable.filter(r => TEST.forceKeys.includes(r.getCellValue(SECONDARY_CONFIG.f.key)));
-    const forced = pool[Math.floor(Math.random() * pool.length)] || null;
-    lines = { ...lines, rotation: forced, milestones: [], problem: forced ? "" : `no usable row matches forceKeys ${JSON.stringify(TEST.forceKeys)}` };
-    selectionNote = `forced, random pick from ${TEST.forceKeys.includes("*") ? "all rows" : TEST.forceKeys.join("/")} (Active ignored)`;
-}
-
-// ── Block logs, only when a candidate line needs them ───────
-const candidateLines = (variants || [lines]).flatMap(v => [v.rotation, ...v.milestones]).filter(Boolean);
-let blockLogs = [];
-if (candidateLines.some(lineNeedsCounts)) {
-    const logQ = await cleaningLogTable.selectRecordsAsync({
-        fields: ["Block", "Date and Time", SECONDARY_CONFIG.cleaningLogBagsField, SECONDARY_CONFIG.cleaningLogLitterField].filter(Boolean)
-    });
-    blockLogs = logQ.records.filter(r => (r.getCellValue("Block") || []).some(b => b.id === blockId));
-}
-
-// ── Build one TemplateModel per subscriber ──────────────────
-const cleaning = { blockName, blockPageUrl, cleaningDate, cleanerFirstName, cleanerNameable, blockFrequency, nextFrequency, blockLogs, now };
-const targets = IS_TEST ? previewPool.slice(0, TEST.maxPreviewsPerLog) : emailRecipients;
-const messages = [];
-const sentSecondaries = [];
-
-console.log(`\nSecondary line selection: ${selectionNote}`);
-const runs = variants ? variants.map((v, i) => ({ lines: v, label: `[${i + 1}/${variants.length}] ` })) : [{ lines, label: "" }];
-for (const r of targets) for (const run of runs) {
-    const { model, sec, outcome } = buildSubscriberModel(r, run.lines, cleaning);
-    console.log(`  ${r.subscriberName}: ${outcome}`);
-    const secondaryKey = sec.dropped === undefined ? sec.key : "none";
-
-    if (IS_TEST) {
-        model.test_banner = {
-            line_key: secondaryKey,
-            outcome: run.label + outcome,
-            selection: selectionNote,
-            audience: audienceNote,
-            as_name: r.subscriberName,
-            log_id: cleaningLogRecordId,
-        };
-    } else if (sec.dropped === undefined) {
-        sentSecondaries.push({ ...sec, subscriberId: r.subscriberId, milestonesSent: r.milestonesSent, email: r.email });
-    }
-
-    for (const to of (IS_TEST ? TEST.recipients : [r.email])) {
-        const msg = {
-            From: FROM_ADDRESS,
-            To: to,
-            TemplateModel: model,
-            MessageStream: MESSAGE_STREAM,
-            Tag: IS_TEST ? "secondary-test" : `secondary:${secondaryKey}`,
-            Metadata: { cleaning_log: cleaningLogRecordId, secondary_key: secondaryKey },
-        };
-        if (IS_TEST) msg.TemplateAlias = TEST.templateAlias; else msg.TemplateId = POSTMARK_TEMPLATE_ID;
-        messages.push(msg);
-    }
-}
-
-// ── Send via Postmark batch API ─────────────────────────────
-if (IS_TEST) assertOnlyTestRecipients(messages);
-console.log(`\nSending ${messages.length} email(s) via Postmark...`);
-
-try {
-    const response = await fetch("https://api.postmarkapp.com/email/batchWithTemplates", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            "X-Postmark-Server-Token": POSTMARK_SERVER_TOKEN
-        },
-        body: JSON.stringify({ Messages: messages })
-    });
-    const result = await response.json();
-
-    if (response.ok) {
-        for (const msg of result) {
-            if (msg.ErrorCode === 0) {
-                console.log(`✓ Sent to ${msg.To}`);
-            } else {
-                console.log(`✗ Failed for ${msg.To}: ${msg.Message}`);
-            }
+        // Check opt-in
+        if (!subscriber.getCellValue("Cleaning Notifications Opt-In")) {
+            totalSkipped++;
+            continue;
         }
+
+        // Check contribution status
+        const statuses = subscriber.getCellValue("Contribution Status (from Active Subscriptions)");
+        if (!statuses || statuses.length === 0) {
+            totalSkipped++;
+            continue;
+        }
+        const statusValues = Array.isArray(statuses)
+            ? statuses.map(s => typeof s === "object" ? s.name || s : s)
+            : [statuses];
+        if (!statusValues.some(s => !CHURN_STATUSES.includes(s))) {
+            totalSkipped++;
+            continue;
+        }
+
+        const email = subscriber.getCellValue("Email");
+        if (!email) {
+            totalSkipped++;
+            continue;
+        }
+
+        emailRecipients.push({
+            email: typeof email === "object" ? email.email || email : email,
+            subscriberName: subscriber.getCellValue("Display Name") || "Unknown",
+            subscriberId: subscriber.id,
+            referralCode: subscriber.getCellValueAsString("Referral Code"),
+            startDate: subscriber.getCellValue(SECONDARY_CONFIG.subscriberStartField),
+            milestonesSent: [
+                ...(subscriber.getCellValue(SECONDARY_CONFIG.subscriberMilestonesField) || []).map(x => x.name),
+                ...(milestonesThisRun.get(subscriber.id) || []),
+            ],
+        });
+    }
+
+    console.log(`  Block "${blockName}": ${emailRecipients.length} eligible recipient(s)`);
+
+    if (emailRecipients.length === 0) {
+        await clearFlag(cleaningLogRecord.id);
+        continue;
+    }
+
+    // ── Build one TemplateModel per subscriber ──────────────
+    const blockLogs = needsCounts
+        ? allCleaningLogs.records.filter(r => (r.getCellValue("Block") || []).some(b => b.id === blockId))
+        : [];
+    const cleaning = { blockName, blockPageUrl, cleaningDate, cleanerFirstName, cleanerNameable, blockFrequency, nextFrequency, blockLogs, now };
+    const targets = IS_TEST ? emailRecipients.slice(0, TEST.maxPreviewsPerLog) : emailRecipients;
+    const messages = [];
+    const sentSecondaries = [];
+    previewed++;
+
+    for (const r of targets) {
+        const { model, sec, outcome } = buildSubscriberModel(r, lines, cleaning);
+        console.log(`  ${r.subscriberName}: ${outcome}`);
+        const secondaryKey = sec.dropped === undefined ? sec.key : "none";
+
         if (IS_TEST) {
-            console.log("Test mode: skipped write-back (Secondary Line stamp, Emails Sent, Milestones Sent).");
-        } else {
-            const okEmails = new Set(result.filter(m => m.ErrorCode === 0).map(m => String(m.To).toLowerCase()));
-            const succeeded = sentSecondaries.filter(s => okEmails.has(String(s.email).toLowerCase()));
-            await recordSecondarySends(lines, cleaningLogTable, cleaningLogRecordId, succeeded, subscribersTable);
+            model.test_banner = {
+                line_key: secondaryKey,
+                outcome: outcome,
+                selection: `morning catch-up, real rules (Active checkbox); log picked by ${pickedBy}`,
+                audience: `${emailRecipients.length} of ${subscriberLinks.length} linked subscriber(s) would get this email`,
+                as_name: r.subscriberName,
+                log_id: cleaningLogRecord.id,
+            };
+        } else if (sec.dropped === undefined) {
+            sentSecondaries.push({ ...sec, subscriberId: r.subscriberId, milestonesSent: r.milestonesSent, email: r.email });
         }
-    } else {
-        console.log(`Postmark API error: ${response.status} — ${JSON.stringify(result)}`);
+
+        for (const to of (IS_TEST ? TEST.recipients : [r.email])) {
+            const msg = {
+                From: FROM_ADDRESS,
+                To: to,
+                TemplateModel: model,
+                MessageStream: MESSAGE_STREAM,
+                Tag: IS_TEST ? "secondary-test" : `secondary:${secondaryKey}`,
+                Metadata: { cleaning_log: cleaningLogRecord.id, secondary_key: secondaryKey },
+            };
+            if (IS_TEST) msg.TemplateAlias = TEST.templateAlias; else msg.TemplateId = POSTMARK_TEMPLATE_ID;
+            messages.push(msg);
+        }
     }
-} catch (error) {
-    console.log(`Network error calling Postmark: ${error.message}`);
+
+    // ── Send via Postmark ───────────────────────────────────
+    if (IS_TEST) assertOnlyTestRecipients(messages);
+    let rejected = false;   // Postmark refused the whole request, so nothing went out
+
+    try {
+        const response = await fetch("https://api.postmarkapp.com/email/batchWithTemplates", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-Postmark-Server-Token": POSTMARK_SERVER_TOKEN
+            },
+            body: JSON.stringify({ Messages: messages })
+        });
+        const result = await response.json();
+
+        if (response.ok) {
+            for (const msg of result) {
+                if (msg.ErrorCode === 0) {
+                    console.log(`  ✓ Sent to ${msg.To}`);
+                    totalSent++;
+                } else {
+                    console.log(`  ✗ Failed for ${msg.To}: ${msg.Message}`);
+                }
+            }
+            if (!IS_TEST) {
+                const okEmails = new Set(result.filter(m => m.ErrorCode === 0).map(m => String(m.To).toLowerCase()));
+                const succeeded = sentSecondaries.filter(s => okEmails.has(String(s.email).toLowerCase()));
+                await recordSecondarySends(lines, cleaningLogTable, cleaningLogRecord.id, succeeded, subscribersTable);
+                for (const s of succeeded.filter(x => x.milestoneTag)) {
+                    milestonesThisRun.set(s.subscriberId, [...(milestonesThisRun.get(s.subscriberId) || []), s.milestoneTag]);
+                }
+            }
+        } else {
+            rejected = true;
+            console.log(`  Postmark API error: ${response.status} — ${JSON.stringify(result)}`);
+        }
+    } catch (error) {
+        console.log(`  Network error: ${error.message}`);
+    }
+
+    // ── Clear the delayed flag ──────────────────────────────
+    if (IS_TEST) {
+        console.log("  Test mode: no write-back, flag left as it is.");
+    } else if (rejected) {
+        console.log(`  ⚠ Left "Email Delayed" checked so tomorrow's run retries this log.`);
+    } else {
+        await clearFlag(cleaningLogRecord.id);
+        console.log(`  ✓ Cleared "Email Delayed" flag.`);
+    }
 }
+
+// ── Final summary ───────────────────────────────────────────
+console.log(`\n══ Morning Catchup Complete ══`);
+console.log(IS_TEST ? `Logs previewed: ${previewed} (test mode, nothing written)` : `Delayed records processed: ${delayedRecords.length}`);
+if (IS_TEST && previewed === 0) console.log("⚠ None of the candidate logs had an eligible subscriber, so nothing was sent.");
+console.log(`Emails sent: ${totalSent}`);
+console.log(`Recipients skipped (opt-out/churn/no email): ${totalSkipped}`);
