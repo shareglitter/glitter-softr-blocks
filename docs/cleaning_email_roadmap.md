@@ -1,6 +1,6 @@
 # Cleaning email — roadmap
 
-**Status:** Part 1 is **live** as of 2026-10-05: both live automations run the V3 scripts in `MODE = "live"`, the live Postmark template carries the secondary section, and `satisfaction` is the first active line. The president approved the 14 lines in the Airtable table on 2026-10-02. Automatic rotation of the active line is written but not set up yet (section 10). Deferred to a later revision by Sid on 2026-10-02: several buttons on one line, milestone lines, and the four-across row (Part 3). Parts 2 to 4 are not built. How the email ships today is in `docs/cleaning_email.md`; read that first, especially the rule that the immediate script and the morning catch-up script build the same `TemplateModel`.
+**Status:** Part 1 is **live** as of 2026-10-05: both live automations run the V3 scripts in `MODE = "live"`, the live Postmark template carries the secondary section, and `satisfaction` was the active line at go-live. The president approved the 14 lines in the Airtable table on 2026-10-02. A scheduled automation rotates the active line (section 10), set up the same day. Deferred to a later revision by Sid on 2026-10-02: several buttons on one line, milestone lines, and the four-across row (Part 3). Parts 2 to 4 are not built. How the email ships today is in `docs/cleaning_email.md`; read that first, especially the rule that the immediate script and the morning catch-up script build the same `TemplateModel`.
 **Last merged:** 2026-10-05
 **Sources:** (1) the president's Google Doc "Cleaning Confirmation Email — Test Ideas" (Sep 17, 2026), turned into a build spec in a Claude chat; (2) her verbal asks relayed the same week: forward/share links, a thumbs up/down, and a four-across "4 more ways to get involved". The unmodified chat spec is in git history at commit `395a257` as `docs/post-clean-email-secondary-slot.md`.
 **Base:** Subscription Blocks (`appzuuUtAQVDg0YW1`)
@@ -295,7 +295,7 @@ Changing the line later is a checkbox move in the table: untick the old row, tic
 
 ### 10. Automatic rotation
 
-`airtable_automations/rotate_secondary_line.js` moves the `Active` checkbox to the next row on a schedule, so nobody has to remember to. Written 2026-10-05; **not set up in Airtable yet.**
+`airtable_automations/rotate_secondary_line.js` moves the `Active` checkbox to the next row on a schedule, so nobody has to remember to. Written and **set up 2026-10-05**: the `Rotation Order` field exists, the dry run and then real Test runs moved the checkbox down the rows as expected, and Sid switched the automation on. Those test runs moved the active line on from `satisfaction`, so the line live after setup is wherever the checkbox was left. The pace is whatever the trigger's schedule says in Airtable; it is not recorded here.
 
 How it picks:
 
@@ -413,7 +413,7 @@ Settled:
 Still open:
 
 1. Should `referral` render as the forward section (today) or as a plain line with its own button? (section 7)
-2. Rotation pace and order: every 10 days was the first suggestion; the order is whatever goes in `Rotation Order`. (section 10)
+2. Rotation pace: every 10 days was the first suggestion; adjust the trigger's schedule after a cycle or two. (section 10)
 
 Deferred to the next revision (Sid, 2026-10-02):
 
